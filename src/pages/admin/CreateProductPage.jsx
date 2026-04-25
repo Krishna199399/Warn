@@ -1,0 +1,359 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { productsApi } from '../../api/products.api';
+import { PageHeader } from '../../components/ui';
+import ImageUploader from '../../components/admin/ImageUploader';
+import ProductPreviewCard from '../../components/admin/ProductPreviewCard';
+import {
+  Package, ChevronRight, CheckCircle2, AlertCircle,
+  Loader2, ArrowLeft, Info, Tag as TagIcon, X
+} from 'lucide-react';
+
+const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticide', 'Equipment', 'Supplement'];
+const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 'ton'];
+
+const INITIAL_FORM = {
+  name: '', sku: '', category: CATEGORIES[0], unit: UNITS[0],
+  price: '', description: '', brand: '', weight: '', tagsInput: '',
+};
+
+// ─── Section wrapper ──────────────────────────────────────────────────────────
+function Section({ number, title, icon: Icon, children }) {
+  return (
+    <div className="card p-6 space-y-4">
+      <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+        <div className="w-7 h-7 rounded-lg bg-green-600 text-white text-xs font-bold
+                        flex items-center justify-center flex-shrink-0">
+          {number}
+        </div>
+        {Icon && <Icon size={15} className="text-slate-500" />}
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Field wrapper ────────────────────────────────────────────────────────────
+function Field({ label, required, error, children, hint }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="label">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {children}
+      {hint  && !error && <p className="text-xs text-slate-400">{hint}</p>}
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={11} />{error}</p>}
+    </div>
+  );
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ message, type = 'success', onClose }) {
+  return (
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3
+                     rounded-xl shadow-2xl border text-sm font-medium toast-enter
+                     ${type === 'success'
+                       ? 'bg-green-600 text-white border-green-500'
+                       : 'bg-red-600 text-white border-red-500'}`}>
+      {type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+      {message}
+      <button onClick={onClose} className="ml-2 hover:opacity-70 transition-opacity">
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function CreateProductPage() {
+  const navigate = useNavigate();
+
+  const [form, setForm]         = useState(INITIAL_FORM);
+  const [imageFile, setImageFile] = useState(null);
+  const [errors, setErrors]     = useState({});
+  const [loading, setLoading]   = useState(false);
+  const [toast, setToast]       = useState(null);
+
+  const set = (key, val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    if (errors[key]) setErrors(e => ({ ...e, [key]: '' }));
+  };
+
+  const parsedTags = form.tagsInput
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim())     e.name  = 'Product name is required';
+    if (!form.sku.trim())      e.sku   = 'SKU is required';
+    if (!form.category)        e.category = 'Select a category';
+    if (!form.price || isNaN(parseFloat(form.price)) || parseFloat(form.price) < 0)
+                               e.price = 'Enter a valid price (≥ 0)';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('name',        form.name.trim());
+      fd.append('sku',         form.sku.trim());
+      fd.append('category',    form.category);
+      fd.append('unit',        form.unit);
+      fd.append('price',       form.price);
+      fd.append('description', form.description.trim());
+      fd.append('brand',       form.brand.trim());
+      fd.append('weight',      form.weight.trim());
+      parsedTags.forEach(t => fd.append('tags', t));
+      if (imageFile) fd.append('image', imageFile);
+
+      await productsApi.create(fd);
+      setToast({ message: 'Product created successfully!', type: 'success' });
+      setTimeout(() => navigate('/app/products'), 1800);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to create product';
+      // Highlight field if SKU duplicate
+      if (msg.toLowerCase().includes('sku')) setErrors(e => ({ ...e, sku: msg }));
+      setToast({ message: msg, type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5 page-enter">
+      {/* Page Header */}
+      <PageHeader
+        title="Create Product"
+        subtitle="Add a new product to the catalog"
+        actions={
+          <button
+            onClick={() => navigate('/app/products')}
+            className="btn-secondary"
+          >
+            <ArrowLeft size={15} /> Back to Products
+          </button>
+        }
+      />
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <span>Products</span>
+        <ChevronRight size={12} />
+        <span className="text-green-600 font-medium">Create</span>
+      </div>
+
+      {/* 2-column grid */}
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="grid lg:grid-cols-[320px_1fr] gap-6 items-start">
+
+          {/* ── LEFT: Preview ─────────────────────────────────────────────── */}
+          <ProductPreviewCard
+            name={form.name}
+            category={form.category}
+            price={form.price}
+            unit={form.unit}
+            brand={form.brand}
+            tags={parsedTags}
+            image={imageFile}
+            previewUrl={null}
+          />
+
+          {/* ── RIGHT: Form ───────────────────────────────────────────────── */}
+          <div className="space-y-5">
+
+            {/* Section 1 — Image */}
+            <Section number="1" title="Product Image" icon={Package}>
+              <ImageUploader
+                value={imageFile}
+                previewUrl={null}
+                onChange={(file) => setImageFile(file)}
+                onClear={() => setImageFile(null)}
+              />
+            </Section>
+
+            {/* Section 2 — Product Information */}
+            <Section number="2" title="Product Information" icon={Info}>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Product Name" required error={errors.name}>
+                  <input
+                    id="prod-name"
+                    type="text"
+                    value={form.name}
+                    onChange={e => set('name', e.target.value)}
+                    placeholder="e.g. Premium Wheat Seeds"
+                    className={`input-field ${errors.name ? 'border-red-400 focus:border-red-400' : ''}`}
+                  />
+                </Field>
+
+                <Field label="SKU" required error={errors.sku} hint="Unique product identifier">
+                  <input
+                    id="prod-sku"
+                    type="text"
+                    value={form.sku}
+                    onChange={e => set('sku', e.target.value.toUpperCase())}
+                    placeholder="e.g. SEED-001"
+                    className={`input-field font-mono ${errors.sku ? 'border-red-400 focus:border-red-400' : ''}`}
+                  />
+                </Field>
+
+                <Field label="Category" required error={errors.category}>
+                  <select
+                    id="prod-category"
+                    value={form.category}
+                    onChange={e => set('category', e.target.value)}
+                    className="input-field"
+                  >
+                    {CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Unit">
+                  <select
+                    id="prod-unit"
+                    value={form.unit}
+                    onChange={e => set('unit', e.target.value)}
+                    className="input-field"
+                  >
+                    {UNITS.map(u => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Price (₹)" required error={errors.price}>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                    <input
+                      id="prod-price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.price}
+                      onChange={e => set('price', e.target.value)}
+                      placeholder="0.00"
+                      className={`input-field pl-7 ${errors.price ? 'border-red-400 focus:border-red-400' : ''}`}
+                    />
+                  </div>
+                </Field>
+              </div>
+
+              <Field label="Description" hint="Briefly describe what this product is and its key uses">
+                <textarea
+                  id="prod-description"
+                  rows={3}
+                  value={form.description}
+                  onChange={e => set('description', e.target.value)}
+                  placeholder="Describe the product..."
+                  className="input-field resize-none"
+                />
+              </Field>
+            </Section>
+
+            {/* Section 3 — Additional Info */}
+            <Section number="3" title="Additional Information" icon={TagIcon}>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Brand" hint="Manufacturer or brand name">
+                  <input
+                    id="prod-brand"
+                    type="text"
+                    value={form.brand}
+                    onChange={e => set('brand', e.target.value)}
+                    placeholder="e.g. AgroTech"
+                    className="input-field"
+                  />
+                </Field>
+
+                <Field label="Weight / Volume" hint="e.g. 1 kg, 500 ml, 25 kg">
+                  <input
+                    id="prod-weight"
+                    type="text"
+                    value={form.weight}
+                    onChange={e => set('weight', e.target.value)}
+                    placeholder="e.g. 1 kg"
+                    className="input-field"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Tags / Labels" hint="Separate multiple tags with commas">
+                <input
+                  id="prod-tags"
+                  type="text"
+                  value={form.tagsInput}
+                  onChange={e => set('tagsInput', e.target.value)}
+                  placeholder="e.g. organic, bestseller, new"
+                  className="input-field"
+                />
+                {parsedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {parsedTags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 text-xs font-medium
+                                   bg-green-50 text-green-700 border border-green-200
+                                   px-2.5 py-0.5 rounded-full"
+                      >
+                        <TagIcon size={9} />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Field>
+            </Section>
+
+            {/* Section 4 — Actions */}
+            <div className="card p-5 flex items-center justify-between gap-4">
+              <p className="text-xs text-slate-400">
+                All required fields (<span className="text-red-500">*</span>) must be filled.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/app/products')}
+                  className="btn-secondary"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  id="btn-create-product"
+                  type="submit"
+                  className="btn-primary"
+                  disabled={loading}
+                >
+                  {loading
+                    ? <><Loader2 size={15} className="animate-spin" /> Creating...</>
+                    : <><CheckCircle2 size={15} /> Create Product</>
+                  }
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </form>
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
+}

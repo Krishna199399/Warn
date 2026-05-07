@@ -7,7 +7,7 @@ const { doubleCsrf } = require('csrf-csrf');
 
 // Configure CSRF protection with simpler options
 const {
-  generateToken,
+  generateCsrfToken, // Correct function name!
   validateRequest,
   doubleCsrfProtection,
 } = doubleCsrf({
@@ -33,12 +33,11 @@ const {
  */
 const sendCsrfToken = (req, res, next) => {
   try {
-    const token = generateToken(req, res);
+    const token = generateCsrfToken(req, res);
     res.locals.csrfToken = token;
     next();
   } catch (error) {
     console.error('[CSRF] Error generating token:', error.message);
-    console.error('[CSRF] Stack:', error.stack);
     next(error);
   }
 };
@@ -48,16 +47,13 @@ const sendCsrfToken = (req, res, next) => {
  */
 const getCsrfToken = (req, res) => {
   try {
-    console.log('[CSRF] Generating token...');
-    const token = generateToken(req, res);
-    console.log('[CSRF] Token generated successfully');
+    const token = generateCsrfToken(req, res);
     res.json({
       success: true,
       csrfToken: token,
     });
   } catch (error) {
     console.error('[CSRF] Error in getCsrfToken:', error.message);
-    console.error('[CSRF] Stack:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Failed to generate CSRF token',
@@ -70,5 +66,5 @@ module.exports = {
   doubleCsrfProtection,
   sendCsrfToken,
   getCsrfToken,
-  generateToken,
+  generateToken: generateCsrfToken, // Export with both names for compatibility
 };

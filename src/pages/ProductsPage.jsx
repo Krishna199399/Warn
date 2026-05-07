@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { LoadingGrid } from '@/components/ui/loading-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { PriceDisplay } from '@/components/ui/price-display';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -71,17 +72,11 @@ function ProductCard({ product, isAdmin, onEdit, onDelete, onAddToCart, onViewDe
         <div className="flex items-end justify-between pt-3 border-t border-border/60 mb-3">
           <div>
             <p className="text-[10px] text-muted-foreground mb-0.5">Price</p>
-            <p className="text-lg font-bold text-primary">{formatCurrency(product.price)}</p>
-            {product.actualPrice && product.actualPrice > product.price && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-xs line-through text-muted-foreground">
-                  {formatCurrency(product.actualPrice)}
-                </span>
-                <span className="text-[10px] font-semibold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
-                  {Math.round(((product.actualPrice - product.price) / product.actualPrice) * 100)}% OFF
-                </span>
-              </div>
-            )}
+            <PriceDisplay 
+              mrp={product.actualPrice}
+              sellingPrice={product.mrp}
+              size="medium"
+            />
           </div>
           <div className="text-right">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">SKU</p>
@@ -349,19 +344,11 @@ export default function ProductsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-bold text-primary">{formatCurrency(p.price)}</p>
-                        {p.actualPrice && p.actualPrice > p.price && (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-xs line-through text-muted-foreground">
-                              {formatCurrency(p.actualPrice)}
-                            </span>
-                            <span className="text-[10px] font-semibold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
-                              {Math.round(((p.actualPrice - p.price) / p.actualPrice) * 100)}% OFF
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      <PriceDisplay 
+                        mrp={p.actualPrice}
+                        sellingPrice={p.mrp}
+                        size="small"
+                      />
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{p.unit}</TableCell>
                     {isAdmin && (

@@ -6,6 +6,7 @@ export { StatusBadge } from './status-badge';
 export { LoadingGrid } from './loading-grid';
 export { EmptyState } from './empty-state';
 export { StatCard } from './stat-card';
+export { PriceDisplay } from './price-display';
 export * from './avatar';
 export * from './badge';
 export * from './breadcrumb';

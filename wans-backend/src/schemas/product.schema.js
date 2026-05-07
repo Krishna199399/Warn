@@ -22,9 +22,9 @@ const createProductSchema = z.object({
       .max(50, 'SKU cannot exceed 50 characters')
       .regex(/^[A-Z0-9-]+$/, 'SKU must contain only uppercase letters, numbers, and hyphens'),
     actualPrice: z.string().or(z.number()).transform(val => parseFloat(val)),
-    price: z.string().or(z.number()).transform(val => parseFloat(val)),
+    mrp: z.string().or(z.number()).transform(val => parseFloat(val)),  // Sell Price (required)
+    price: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),  // Auto-filled from mrp
     taxRate: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    mrp: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rp: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     sv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
@@ -57,9 +57,9 @@ const updateProductSchema = z.object({
     description: z.string().max(2000).optional().or(z.literal('')),
     category: z.string().min(2).max(100).trim().optional(),
     actualPrice: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    price: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
+    mrp: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),  // Sell Price
+    price: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),  // Auto-filled from mrp
     taxRate: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    mrp: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rp: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     sv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),

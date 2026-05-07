@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Leaf, Star, ShoppingCart, Search, Menu, X } from 'lucide-react';
 import { productsApi } from '../api/products.api';
+import { PriceDisplay } from '../components/ui/price-display';
 
 export default function PublicProductsPage() {
   const navigate = useNavigate();
@@ -174,9 +175,12 @@ export default function PublicProductsPage() {
                     </div>
 
                     <div className="mt-3 flex items-end justify-between gap-2">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-lg font-semibold text-slate-900">₹{product.price?.toLocaleString('en-IN')}</span>
-                      </div>
+                      <PriceDisplay 
+                        mrp={product.actualPrice}
+                        sellingPrice={product.mrp}
+                        size="medium"
+                        showSavings={false}
+                      />
                     </div>
 
                     <button className="mt-4 w-full btn-primary text-sm">

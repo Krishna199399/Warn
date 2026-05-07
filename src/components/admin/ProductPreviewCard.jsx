@@ -11,9 +11,9 @@ const CATEGORY_COLORS = {
 
 /**
  * ProductPreviewCard — live product preview panel
- * Props: name, category, actualPrice, price, unit, unitQuantity, brand, tags (array), image (File|null), previewUrl (string|null), description, taxRate
+ * Props: name, category, actualPrice, mrp, price, unit, unitQuantity, brand, tags (array), image (File|null), previewUrl (string|null), description, taxRate
  */
-export default function ProductPreviewCard({ name, category, actualPrice, price, unit, unitQuantity, brand, tags = [], image, previewUrl, description, taxRate = 18 }) {
+export default function ProductPreviewCard({ name, category, actualPrice, mrp, price, unit, unitQuantity, brand, tags = [], image, previewUrl, description, taxRate = 18 }) {
   const imgSrc = image
     ? URL.createObjectURL(image)
     : previewUrl || null;
@@ -21,16 +21,18 @@ export default function ProductPreviewCard({ name, category, actualPrice, price,
   const displayName        = name     || 'Product Name';
   const displayCategory    = category || 'Category';
   const displayActualPrice = actualPrice ? parseFloat(actualPrice) : 0;
-  const displayPrice       = price    ? parseFloat(price) : 0;
+  const displayMrp         = mrp ? parseFloat(mrp) : 0;
+  const displayPrice       = price ? parseFloat(price) : 0;
   const displayUnit        = unitQuantity ? `${unitQuantity} ${unit || 'unit'}` : (unit || 'unit');
   const catColor           = CATEGORY_COLORS[category] || 'bg-slate-100 text-slate-600';
-  const hasDiscount        = displayActualPrice > 0 && displayPrice > 0 && displayActualPrice > displayPrice;
-  const discountPercent    = hasDiscount ? Math.round(((displayActualPrice - displayPrice) / displayActualPrice) * 100) : 0;
   
   // Tax calculation breakdown
+  // Base Price (price or mrp) is the price WITHOUT tax
+  // Final Price = Base Price + Tax
   const taxRateNum = parseFloat(taxRate) || 0;
-  const basePrice = displayActualPrice > 0 ? displayActualPrice / (1 + taxRateNum / 100) : 0;
-  const taxAmount = displayActualPrice > 0 ? displayActualPrice - basePrice : 0;
+  const basePrice = displayPrice > 0 ? displayPrice : displayMrp;
+  const taxAmount = basePrice > 0 ? basePrice * (taxRateNum / 100) : 0;
+  const finalPrice = basePrice + taxAmount;
 
   return (
     <div className="card p-0 overflow-hidden sticky top-6">
@@ -85,20 +87,26 @@ export default function ProductPreviewCard({ name, category, actualPrice, price,
 
         {/* Price Section */}
         <div className="space-y-3">
-          {/* MRP Price (Tax-Inclusive) */}
+          {/* Final Price (Tax-Inclusive) */}
           <div className="flex items-end gap-1">
             <IndianRupee size={16} className="text-green-600 mb-0.5" />
-            <span className={`text-2xl font-bold leading-none transition-colors ${displayActualPrice ? 'text-green-600' : 'text-slate-300'}`}>
-              {displayActualPrice > 0 ? displayActualPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+            <span className={`text-2xl font-bold leading-none transition-colors ${finalPrice ? 'text-green-600' : 'text-slate-300'}`}>
+              {finalPrice > 0 ? finalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
             </span>
             <span className="text-sm text-slate-400 mb-0.5">/ {displayUnit}</span>
           </div>
           
           {/* Tax Breakdown */}
-          {displayActualPrice > 0 && taxRateNum > 0 && (
+          {finalPrice > 0 && taxRateNum > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600">Base Price (excl. tax)</span>
+                <span className="text-slate-600">MRP Price</span>
+                <span className="font-semibold text-slate-700">
+                  ₹{displayActualPrice > 0 ? displayActualPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600">Sell Price (excl. tax)</span>
                 <span className="font-semibold text-slate-700">
                   ₹{basePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
@@ -110,9 +118,9 @@ export default function ProductPreviewCard({ name, category, actualPrice, price,
                 </span>
               </div>
               <div className="border-t border-green-200 pt-1.5 flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700">MRP Price (incl. tax)</span>
+                <span className="font-semibold text-slate-700">Final Price (incl. tax)</span>
                 <span className="font-bold text-green-600">
-                  ₹{displayActualPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{finalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

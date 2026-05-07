@@ -3,6 +3,7 @@ import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PriceDisplay } from '@/components/ui/price-display';
 
 export default function CartItem({ item, onUpdateQuantity, onRemove }) {
   const handleDecrease = () => {
@@ -37,9 +38,14 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground line-clamp-1">{item.name}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{item.category || 'Product'}</p>
-          <p className="text-sm font-semibold text-primary mt-1">
-            {formatCurrency(item.price)} <span className="text-muted-foreground font-normal text-xs">per unit</span>
-          </p>
+          <div className="mt-1">
+            <PriceDisplay 
+              mrp={item.actualPrice}
+              sellingPrice={item.mrp || item.price}
+              size="small"
+            />
+            <p className="text-[10px] text-muted-foreground mt-0.5">per unit</p>
+          </div>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto mt-2 sm:mt-0">

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PriceDisplay } from '@/components/ui/price-display';
 
 const CATEGORY_STYLE = {
   Seeds:      'bg-green-50 text-green-700 border-green-200',
@@ -240,19 +241,14 @@ export default function ProductDetailPage() {
 
             {/* Price */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 mb-4">
-              <p className="text-sm text-green-700 mb-1">Price</p>
-              <p className="text-4xl font-bold text-green-700">{formatCurrency(product.price)}</p>
-              {product.actualPrice && product.actualPrice > product.price && (
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm line-through text-green-600/70">
-                    {formatCurrency(product.actualPrice)}
-                  </span>
-                  <span className="text-xs font-semibold bg-red-100 text-red-600 px-2 py-1 rounded-full">
-                    {Math.round(((product.actualPrice - product.price) / product.actualPrice) * 100)}% OFF
-                  </span>
-                </div>
-              )}
-              <p className="text-sm text-green-600 mt-1">per {product.unit}</p>
+              <p className="text-sm text-green-700 mb-2">Price</p>
+              <PriceDisplay 
+                mrp={product.actualPrice}
+                sellingPrice={product.mrp}
+                size="xlarge"
+                showSavings={true}
+                unit={`per ${product.unit}`}
+              />
             </div>
 
             {/* Meta Info */}

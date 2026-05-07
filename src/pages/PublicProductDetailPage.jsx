@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { productsApi } from '../api/products.api';
 import { useCart } from '../contexts/CartContext';
 import { ArrowLeft, Package, ShoppingCart, Star, Leaf, Menu, X, Plus, Minus, ChevronDown, ChevronUp, Droplets, Award, Pill, AlertTriangle } from 'lucide-react';
+import { PriceDisplay } from '../components/ui/price-display';
 
 // ─── Expandable Info Section Component ───────────────────────────────────────
 function ExpandableSection({ title, content, icon: Icon, isOpen, onToggle }) {
@@ -188,9 +189,14 @@ export default function PublicProductDetailPage() {
 
                 {/* Price */}
                 <div className="rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 p-5">
-                  <p className="text-xs text-green-700 mb-1">Price</p>
-                  <p className="text-4xl font-bold text-green-700">₹{product.price?.toLocaleString('en-IN')}</p>
-                  <p className="text-sm text-green-600 mt-1">per {product.unit}</p>
+                  <p className="text-xs text-green-700 mb-2">Price</p>
+                  <PriceDisplay 
+                    mrp={product.actualPrice}
+                    sellingPrice={product.mrp || product.price}
+                    size="xlarge"
+                    showSavings={true}
+                    unit={`per ${product.unit}`}
+                  />
                 </div>
 
                 {/* Description */}
@@ -221,7 +227,7 @@ export default function PublicProductDetailPage() {
                       </button>
                     </div>
                     <div className="text-sm text-slate-600">
-                      <span className="font-semibold">Total:</span> ₹{(product.price * quantity).toLocaleString('en-IN')}
+                      <span className="font-semibold">Total:</span> ₹{((product.mrp || product.price) * quantity).toLocaleString('en-IN')}
                     </div>
                   </div>
                 </div>
@@ -339,9 +345,11 @@ export default function PublicProductDetailPage() {
                         </div>
 
                         <div className="mt-3 flex items-end justify-between gap-2">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-lg font-semibold text-slate-900">₹{relatedProduct.price?.toLocaleString('en-IN')}</span>
-                          </div>
+                          <PriceDisplay 
+                            mrp={relatedProduct.actualPrice}
+                            sellingPrice={relatedProduct.mrp || relatedProduct.price}
+                            size="medium"
+                          />
                         </div>
 
                         <button className="mt-4 w-full btn-primary text-sm">

@@ -14,7 +14,7 @@ const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 't
 
 const INITIAL_FORM = {
   name: '', sku: '', category: '', unit: UNITS[0], unitQuantity: '',
-  actualPrice: '', mrp: '', rp: '', sv: '', rv: '', iv: '',
+  actualPrice: '', mrp: '', price: '', rp: '', sv: '', rv: '', iv: '',
   wholesalePrice: '', miniStockPrice: '',
   description: '', brand: '', weight: '', tagsInput: '',
   taxRate: '18', // Default 18% tax
@@ -102,10 +102,12 @@ export default function CreateProductPage() {
   const set = (key, val) => {
     setForm(f => {
       const updated = { ...f, [key]: val };
-      // Auto-sync: When actualPrice changes, update mrp field too
-      if (key === 'actualPrice') {
-        updated.mrp = val;
+      
+      // Auto-fill Base Price from Sell Price (for preview)
+      if (key === 'mrp') {
+        updated.price = val;  // Base Price = Sell Price
       }
+      
       return updated;
     });
     if (errors[key]) setErrors(e => ({ ...e, [key]: '' }));
@@ -119,6 +121,8 @@ export default function CreateProductPage() {
     if (!form.category)        e.category = 'Select a category';
     if (!form.actualPrice || isNaN(parseFloat(form.actualPrice)) || parseFloat(form.actualPrice) < 0)
                                e.actualPrice = 'Enter a valid MRP price (≥ 0)';
+    if (!form.mrp || isNaN(parseFloat(form.mrp)) || parseFloat(form.mrp) < 0)
+                               e.mrp = 'Enter a valid sell price (≥ 0)';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -137,7 +141,7 @@ export default function CreateProductPage() {
       fd.append('unit',        form.unit);
       if (form.unitQuantity) fd.append('unitQuantity', form.unitQuantity);
       fd.append('actualPrice', form.actualPrice);
-      fd.append('price',       form.actualPrice); // Use actualPrice as price (no discount)
+      // price field is auto-filled by backend from mrp
       fd.append('taxRate',     form.taxRate || '18');
       if (form.mrp)  fd.append('mrp', form.mrp);
       if (form.rp)   fd.append('rp',  form.rp);
@@ -197,7 +201,8 @@ export default function CreateProductPage() {
               name={form.name}
               category={form.category}
               actualPrice={form.actualPrice}
-              price={form.actualPrice}
+              mrp={form.mrp}
+              price={form.price}
               unit={form.unit}
               unitQuantity={form.unitQuantity}
               brand=""
@@ -315,7 +320,7 @@ export default function CreateProductPage() {
                 </Field>
               </div>
 
-              <Field label="MRP Price (₹)" hint="Maximum Retail Price for this product" required error={errors.actualPrice}>
+              <Field label="MRP Price (₹)" hint="Maximum Retail Price (printed on package)" required error={errors.actualPrice}>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
                   <input
@@ -327,6 +332,22 @@ export default function CreateProductPage() {
                     onChange={e => set('actualPrice', e.target.value)}
                     placeholder="0.00"
                     className={`input-field pl-7 ${errors.actualPrice ? 'border-red-400 focus:border-red-400' : ''}`}
+                  />
+                </div>
+              </Field>
+
+              <Field label="Sell Price (₹)" hint="Actual selling price to customers" required error={errors.mrp}>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                  <input
+                    id="prod-mrp"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.mrp}
+                    onChange={e => set('mrp', e.target.value)}
+                    placeholder="0.00"
+                    className={`input-field pl-7 ${errors.mrp ? 'border-red-400 focus:border-red-400' : ''}`}
                   />
                 </div>
               </Field>
@@ -417,7 +438,7 @@ export default function CreateProductPage() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
                 {[  
-                  { key: 'mrp', label: 'MRP',               hint: 'Auto-synced from MRP Price above', readOnly: true },
+                  { key: 'price', label: 'Base Price',      hint: 'Base selling price (before discount)' },
                   { key: 'wholesalePrice', label: 'Wholesale Price', hint: 'Price for Wholesale buyers' },
                   { key: 'miniStockPrice', label: 'Mini Stock Price', hint: 'Price for Mini Stock buyers' },
                   { key: 'rp',  label: 'RP – Retail Point',  hint: 'Price at retail point' },

@@ -18,6 +18,14 @@ router.post('/employee-registrations/bulk-import', protect, adminOnly, ctrl.bulk
 router.post('/:id/employee-registrations/approve', protect, adminOnly, ctrl.approveEmployeeRegistration);
 router.post('/:id/employee-registrations/reject',  protect, adminOnly, ctrl.rejectEmployeeRegistration);
 
+// KYC routes - MUST come before /:id routes to avoid route collision
+router.post('/kyc',                protect, employeeOrStockOnly, ctrl.updateKYC);
+router.get('/kyc',                 protect, employeeOrStockOnly, ctrl.getKYC);
+router.get('/:id/kyc',             protect, adminOnly,    ctrl.getKYC);
+router.put('/:id/kyc/approve',     protect, adminOnly,    ctrl.approveKYC);
+router.put('/:id/kyc/reject',      protect, adminOnly,    ctrl.rejectKYC);
+
+// User CRUD - parameterized routes MUST come after specific routes
 router.get('/:id',                 protect,               ctrl.getUser);
 router.put('/:id',                 protect, adminOnly,    ctrl.updateUser);
 router.delete('/:id',              protect, adminOnly,    ctrl.deleteUser);
@@ -28,10 +36,5 @@ router.put('/:id/assign-parent',   protect, adminOnly,    ctrl.assignParent);
 router.get('/:id/downline',        protect, employeeOnly, ctrl.getDownline);
 router.get('/:id/performance',     protect, employeeOnly, ctrl.getUserPerformance);
 router.get('/:id/activity',        protect,               ctrl.getUserActivity);
-router.get('/:id/kyc',             protect, adminOnly,    ctrl.getKYC);
-router.post('/kyc',                protect, employeeOrStockOnly, ctrl.updateKYC);
-router.get('/kyc',                 protect, employeeOrStockOnly, ctrl.getKYC);
-router.put('/:id/kyc/approve',     protect, adminOnly,    ctrl.approveKYC);
-router.put('/:id/kyc/reject',      protect, adminOnly,    ctrl.rejectKYC);
 
 module.exports = router;

@@ -57,7 +57,7 @@ app.use(helmet({
 // 🔒 SECURITY: Endpoint-specific rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per 15 minutes
+  max: 20, // 20 attempts per 15 minutes
   message: { success: false, error: 'Too many login attempts. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

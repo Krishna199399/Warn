@@ -150,7 +150,7 @@ export default function EditProductPage() {
     if (errors[key]) setErrors(e => ({ ...e, [key]: '' }));
   };
 
-  const parsedTags = form.tagsInput.split(',').map(t => t.trim()).filter(Boolean);
+  const parsedTags = form?.tagsInput ? form.tagsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
 
   const validate = () => {
     const e = {};

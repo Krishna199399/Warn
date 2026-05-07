@@ -18,6 +18,11 @@ const createNotification = async (userId, { type, title, message, data = null })
 // Create notifications for multiple users
 const createBulkNotifications = async (userIds, { type, title, message, data = null }) => {
   try {
+    // Handle empty or invalid userIds
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return [];
+    }
+    
     const docs = userIds.map(userId => ({ userId, type, title, message, data }));
     return await Notification.insertMany(docs);
   } catch (error) {
@@ -54,6 +59,13 @@ const notifyByRole = async (roles, { type, title, message, data = null }) => {
   try {
     const roleArray = Array.isArray(roles) ? roles : [roles];
     const users = await User.find({ role: { $in: roleArray }, status: 'APPROVED' }).select('_id');
+    
+    // Handle empty results
+    if (!users || users.length === 0) {
+      console.warn(`No users found with role(s): ${roleArray.join(', ')}`);
+      return [];
+    }
+    
     const userIds = users.map(u => u._id);
     return await createBulkNotifications(userIds, { type, title, message, data });
   } catch (error) {

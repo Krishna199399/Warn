@@ -105,7 +105,8 @@ export default function CreateProductPage() {
       
       // Auto-fill Base Price from Sell Price (for preview)
       if (key === 'mrp') {
-        updated.price = val;  // Base Price = Sell Price
+        const numVal = parseFloat(val);
+        updated.price = (!isNaN(numVal) && numVal >= 0) ? val : '';  // Only set if valid number
       }
       
       return updated;

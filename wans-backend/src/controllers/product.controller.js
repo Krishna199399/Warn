@@ -84,7 +84,8 @@ exports.createProduct = async (req, res) => {
       unit:        req.body.unit || 'unit',
       unitQuantity: req.body.unitQuantity ? parseFloat(req.body.unitQuantity) : null,
       actualPrice: parseFloat(req.body.actualPrice),
-      price:       parseFloat(req.body.price),
+      // price is auto-filled from mrp in pre-save hook, but accept it if provided and valid
+      price:       req.body.price && !isNaN(parseFloat(req.body.price)) ? parseFloat(req.body.price) : undefined,
       taxRate:     req.body.taxRate ? parseFloat(req.body.taxRate) : 18,
       mrp:         req.body.mrp  ? parseFloat(req.body.mrp)  : 0,
       rp:          req.body.rp   ? parseFloat(req.body.rp)   : 0,
@@ -135,7 +136,8 @@ exports.updateProduct = async (req, res) => {
       unit:        req.body.unit || product.unit,
       unitQuantity: req.body.unitQuantity != null ? parseFloat(req.body.unitQuantity) : product.unitQuantity,
       actualPrice: parseFloat(req.body.actualPrice),
-      price:       parseFloat(req.body.price),
+      // price is auto-filled from mrp in pre-save hook, but accept it if provided and valid
+      price:       req.body.price != null && !isNaN(parseFloat(req.body.price)) ? parseFloat(req.body.price) : product.price,
       taxRate:     req.body.taxRate != null ? parseFloat(req.body.taxRate) : product.taxRate,
       mrp:         req.body.mrp != null ? parseFloat(req.body.mrp) : product.mrp,
       rp:          req.body.rp  != null ? parseFloat(req.body.rp)  : product.rp,

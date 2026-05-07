@@ -9,6 +9,9 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// 🔒 SECURITY: Trust proxy for rate limiting behind Nginx
+app.set('trust proxy', 1);
+
 // 🔒 SECURITY: HTTPS enforcement in production
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {

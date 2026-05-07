@@ -1,0 +1,46 @@
+================================================================================
+QUICK DEPLOYMENT REFERENCE - Copy & Paste Commands
+================================================================================
+
+SSH INTO VPS:
+  ssh root@srv1642115
+
+================================================================================
+DEPLOY BACKEND (CRITICAL - DO THIS FIRST)
+================================================================================
+
+cd /var/www/Warn/wans-backend
+git pull origin main
+npm install
+pm2 restart project-backend --update-env
+sleep 3
+pm2 logs project-backend --lines 20 --nostream
+
+VERIFY: No "Cast to ObjectId failed for value 'kyc'" errors
+
+================================================================================
+DEPLOY FRONTEND
+================================================================================
+
+cd /var/www/Warn/wans-frontend
+git pull origin main
+npm install
+npm run build
+ls -lh dist/
+
+VERIFY: Login as advisor - employee code should display
+
+================================================================================
+ONE-LINE DEPLOY (BOTH)
+================================================================================
+
+ssh root@srv1642115 "cd /var/www/Warn/wans-backend && git pull origin main && npm install && pm2 restart project-backend --update-env && sleep 3 && cd /var/www/Warn/wans-frontend && git pull origin main && npm install && npm run build"
+
+================================================================================
+VERIFICATION
+================================================================================
+
+Backend:  pm2 logs project-backend --lines 50
+Frontend: Open https://warnamayii.cloud and login as advisor
+
+================================================================================

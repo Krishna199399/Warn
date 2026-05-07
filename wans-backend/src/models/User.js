@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   advisorCode: { type: String, default: null },        // e.g. ADV00108
 
   // Employee Registration & Approval System
-  employeeCode: { type: String, unique: true, sparse: true, default: null }, // e.g. ADV-2025-0001
+  employeeCode: { type: String, unique: true, sparse: true }, // e.g. ADV-2025-0001 — NO default:null! sparse index indexes explicit nulls causing dup-key errors
   registrationStatus: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'], 

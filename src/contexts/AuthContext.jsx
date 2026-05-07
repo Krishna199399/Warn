@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth.api';
-import { setTokenGetter } from '../api/client';
+import { setTokenGetter, initializeCsrf } from '../api/client';
 
 // ─── Role constants ───────────────────────────────────────────────────────────
 export const ROLES = {
@@ -55,11 +55,20 @@ export function AuthProvider({ children }) {
 
   // ── Restore session on page load ──────────────────────────────────────────
   useEffect(() => {
-    // Try to restore session using refresh token (httpOnly cookie)
-    authApi.me()
-      .then(res => setUser(res.data.data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    // Initialize CSRF token first
+    initializeCsrf().then(() => {
+      // Then try to restore session using refresh token (httpOnly cookie)
+      authApi.me()
+        .then(res => setUser(res.data.data))
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
+    }).catch(() => {
+      // If CSRF initialization fails, still try to restore session
+      authApi.me()
+        .then(res => setUser(res.data.data))
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false));
+    });
   }, []);
 
   // ── Login ─────────────────────────────────────────────────────────────────

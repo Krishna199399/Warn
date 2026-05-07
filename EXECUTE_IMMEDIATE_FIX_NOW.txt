@@ -1,0 +1,110 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║          🔧 FIX IMMEDIATE LOGOUT - EXECUTE NOW 🔧           ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+PROBLEM:
+--------
+Login → Refresh after 1 second → Logged out ❌
+
+ROOT CAUSE:
+-----------
+/auth/refresh returns only accessToken (no user data)
+Frontend expected user data, got undefined, logged out
+
+SOLUTION:
+---------
+✅ Fixed session restoration: refresh → me (two-step)
+✅ Fixed API interceptor: allow /auth/me retry
+
+FILES CHANGED:
+--------------
+✅ src/contexts/AuthContext.jsx
+✅ src/api/client.js
+
+═══════════════════════════════════════════════════════════════
+
+DEPLOY COMMANDS (Copy & Paste):
+--------------------------------
+
+ssh root@srv1642115.your-server.de
+
+cd /var/www/Warn
+
+git pull origin main
+
+bash DEPLOY_IMMEDIATE_LOGOUT_FIX.sh
+
+═══════════════════════════════════════════════════════════════
+
+TESTING:
+--------
+1. Clear browser cache (Ctrl+Shift+Delete)
+2. Go to: https://warnamayii.cloud/login
+3. Login with: admin@wans.com / admin123
+4. Immediately press F5 (refresh)
+5. ✅ Should stay logged in!
+
+═══════════════════════════════════════════════════════════════
+
+EXPECTED RESULT:
+----------------
+
+BEFORE:
+  Login → Refresh → ❌ Logged out
+
+AFTER:
+  Login → Refresh → ✅ Stays logged in
+  Login → Wait → Refresh → ✅ Stays logged in
+  Login → Navigate → Refresh → ✅ Stays on same page
+
+═══════════════════════════════════════════════════════════════
+
+TIME REQUIRED:
+--------------
+⏱️  Deployment: 2 minutes
+⏱️  Testing: 1 minute
+⏱️  Total: 3 minutes
+
+═══════════════════════════════════════════════════════════════
+
+DOCUMENTATION:
+--------------
+📄 Quick Summary: IMMEDIATE_LOGOUT_FIX_SUMMARY.md
+📄 Detailed Guide: FIX_IMMEDIATE_LOGOUT.md
+📄 Deploy Script: DEPLOY_IMMEDIATE_LOGOUT_FIX.sh
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+----------------
+If still having issues:
+
+1. Check browser console (F12)
+   - Look for errors during refresh
+
+2. Check network tab (F12 → Network)
+   - /auth/refresh should return 200 OK
+   - /auth/me should return 200 OK
+
+3. Clear everything
+   - Ctrl+Shift+Delete
+   - Clear all cookies and cache
+   - Close and reopen browser
+
+4. Try incognito/private window
+   - Rules out cache issues
+
+═══════════════════════════════════════════════════════════════
+
+READY TO DEPLOY? ✅
+
+Run these commands now:
+
+  ssh root@srv1642115.your-server.de
+  cd /var/www/Warn
+  git pull origin main
+  bash DEPLOY_IMMEDIATE_LOGOUT_FIX.sh
+
+═══════════════════════════════════════════════════════════════

@@ -50,13 +50,17 @@ client.interceptors.response.use(
     // ── Skip retry for: ──────────────────────────────────────────────────────
     // 1. Already retried requests
     // 2. The refresh endpoint itself (prevents refresh → 401 → refresh loop)
-    // 3. Auth endpoints (login, register)
+    // 3. Login/register endpoints (no token expected)
     // 4. Non-401 errors
-    const isAuthEndpoint = original.url?.includes('/auth/');
+    const isRefreshEndpoint = original.url?.includes('/auth/refresh');
+    const isLoginOrRegister = original.url?.includes('/auth/login') || 
+                              original.url?.includes('/auth/register');
+    
     if (
       error.response?.status !== 401 ||
       original._retry ||
-      isAuthEndpoint
+      isRefreshEndpoint ||
+      isLoginOrRegister
     ) {
       return Promise.reject(error);
     }

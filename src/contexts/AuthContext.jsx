@@ -61,20 +61,18 @@ export function AuthProvider({ children }) {
       try {
         // First, try to refresh the access token using the httpOnly refresh token cookie
         const refreshRes = await authApi.refresh();
-        const { accessToken: token, user: userData } = refreshRes.data.data;
+        const { accessToken: token } = refreshRes.data.data;
         
         // Store the new access token in memory
         setAccessToken(token);
-        setUser(userData);
-      } catch (refreshError) {
-        // If refresh fails, try /me endpoint (in case we still have a valid session)
-        try {
-          const meRes = await authApi.me();
-          setUser(meRes.data.data);
-        } catch (meError) {
-          // Both failed - user needs to login
-          setUser(null);
-        }
+        
+        // Now fetch user data with the new token
+        const meRes = await authApi.me();
+        setUser(meRes.data.data);
+      } catch (error) {
+        // Refresh failed - user needs to login
+        setUser(null);
+        setAccessToken(null);
       } finally {
         setLoading(false);
       }

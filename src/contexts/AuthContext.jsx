@@ -57,10 +57,30 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // 🔒 SECURITY: CSRF protection is disabled on backend
     // Try to restore session using refresh token (httpOnly cookie)
-    authApi.me()
-      .then(res => setUser(res.data.data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    const restoreSession = async () => {
+      try {
+        // First, try to refresh the access token using the httpOnly refresh token cookie
+        const refreshRes = await authApi.refresh();
+        const { accessToken: token, user: userData } = refreshRes.data.data;
+        
+        // Store the new access token in memory
+        setAccessToken(token);
+        setUser(userData);
+      } catch (refreshError) {
+        // If refresh fails, try /me endpoint (in case we still have a valid session)
+        try {
+          const meRes = await authApi.me();
+          setUser(meRes.data.data);
+        } catch (meError) {
+          // Both failed - user needs to login
+          setUser(null);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
   // ── Login ─────────────────────────────────────────────────────────────────

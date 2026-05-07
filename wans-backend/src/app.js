@@ -97,12 +97,16 @@ const corsOptions = {
     // Check against allowed origins
     if (allowedOrigins.includes(origin)) return callback(null, true);
     
+    // Log rejected origin for debugging
+    console.warn(`[CORS] Rejected origin: ${origin}. Allowed origins:`, allowedOrigins);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','X-CSRF-Token'],
   exposedHeaders: ['Set-Cookie'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));

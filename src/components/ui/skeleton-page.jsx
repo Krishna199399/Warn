@@ -1,0 +1,1 @@
+export function SkeletonPage() { return (<div className='space-y-5 p-6 animate-pulse'><div className='h-8 w-1/3 bg-slate-200 rounded'></div><div className='h-4 w-1/4 bg-slate-200 rounded'></div><div className='h-64 bg-slate-100 rounded-xl mt-6'></div></div>); }

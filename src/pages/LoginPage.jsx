@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Leaf, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { Leaf, Eye, EyeOff, LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
-  const [form,     setForm]    = useState({ identifier: '', password: '' });
-  const [showPass, setPass]    = useState(false);
-  const [submitting, setSub]   = useState(false);
+  const [form, setForm] = useState({ identifier: '', password: '' });
+  const [showPass, setPass] = useState(false);
+  const [submitting, setSub] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,81 +25,113 @@ export default function LoginPage() {
   const busy = submitting || loading;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-950 via-green-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-      }} />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden page-enter bg-gradient-to-br from-amber-50 via-stone-100 to-orange-50">
+      {/* Blur circles */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-amber-200/40 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-200/40 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-stone-200/30 rounded-full blur-3xl" />
 
       <div className="relative w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-green-500 rounded-2xl shadow-lg mb-4">
-            <Leaf size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Warnamayii WANS</h1>
-          <p className="text-green-300 text-sm mt-1">Agri Distribution &amp; Network System</p>
+        {/* Back to Home Link */}
+        <div className="absolute -top-12 left-0">
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-amber-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+          </Link>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">Welcome back</h2>
-          <p className="text-sm text-slate-500 mb-6">Sign in to your account to continue</p>
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/logo-full-tagline.png" 
+              srcSet="/logo-full-tagline@2x.png 2x"
+              alt="Warnamayii Krishi Resources" 
+              className="h-24 w-auto object-contain"
+            />
+          </div>
+        </div>
 
-          {error && (
-            <div className="flex items-start gap-2.5 p-3 bg-red-50 rounded-xl mb-5 border border-red-100">
-              <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-red-600">{error}</p>
-            </div>
-          )}
+        <Card className="shadow-xl shadow-amber-900/10 border-amber-200/50 backdrop-blur-sm bg-white/90">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-xl">Welcome back</CardTitle>
+            <CardDescription>Sign in to your account to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="flex items-start gap-2.5 p-3 bg-destructive/10 rounded-xl mb-5 border border-destructive/20">
+                <AlertCircle size={16} className="text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-destructive">{error}</p>
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">Email or Phone</label>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="admin@wans.com or 1234567890"
-                value={form.identifier}
-                onChange={e => setForm({ ...form, identifier: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  className="input-field pr-10"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={e => setForm({ ...form, password: e.target.value })}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Email, Phone, or Employee Code</Label>
+                <Input
+                  type="text"
+                  placeholder="admin@wans.com, 1234567890, or ADV-2025-0001"
+                  value={form.identifier}
+                  onChange={e => setForm({ ...form, identifier: e.target.value })}
                   required
                 />
-                <button type="button" onClick={() => setPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                <p className="text-xs text-muted-foreground">
+                  Enter your email, phone number, or employee code
+                </p>
               </div>
-            </div>
+              <div className="space-y-1.5">
+                <Label>Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPass ? 'text' : 'password'}
+                    className="pr-10"
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
 
-            <button type="submit" disabled={busy}
-              className="btn-primary w-full justify-center py-2.5 text-sm font-semibold disabled:opacity-60">
-              {busy
-                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in...</>
-                : <><LogIn size={16} /> Sign in</>
-              }
-            </button>
-          </form>
+              <Button type="submit" disabled={busy} className="w-full h-11 mt-2">
+                {busy ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} className="mr-2" />
+                    Sign in
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3 mt-6">
+          <p className="text-center text-stone-600 text-sm">
+            New to Warnamayii?{' '}
+            <Link to="/register-select" className="text-amber-700 font-semibold hover:underline">
+              Create an account
+            </Link>
+          </p>
         </div>
-
-        <p className="text-center text-green-400/60 text-xs mt-4">
-          New to WANS?{' '}
-          <Link to="/register" className="text-green-300 font-semibold hover:text-white transition-colors">
-            Create an account
-          </Link>
-        </p>
-        <p className="text-center text-green-400/40 text-xs mt-2">
-          &copy; 2024 Warnamayii Agri Network System
+        <p className="text-center text-stone-500 text-xs mt-4">
+          &copy; 2024 Warnamayii Krishi Resources
         </p>
       </div>
     </div>

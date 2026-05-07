@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi } from '../api/auth.api';
+import { setTokenGetter } from '../api/client';
 
 // ─── Role constants ───────────────────────────────────────────────────────────
 export const ROLES = {
@@ -39,20 +40,25 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);   // true while checking session on mount
   const [error,   setError]   = useState(null);
+  // 🔒 SECURITY: Store access token in memory only (not sessionStorage) to prevent XSS attacks
+  const [accessToken, setAccessToken] = useState(null);
+
+  // ── Setup token getter for API client ─────────────────────────────────────
+  useEffect(() => {
+    setTokenGetter(() => accessToken);
+    // Setup global token updater for refresh flow
+    window.__updateAccessToken = setAccessToken;
+    return () => {
+      window.__updateAccessToken = null;
+    };
+  }, [accessToken]);
 
   // ── Restore session on page load ──────────────────────────────────────────
   useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    // Try to restore session using refresh token (httpOnly cookie)
     authApi.me()
       .then(res => setUser(res.data.data))
-      .catch(() => {
-        sessionStorage.removeItem('accessToken');
-        setUser(null);
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,8 +67,9 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const res   = await authApi.login(identifier, password);
-      const { accessToken, user: userData } = res.data.data;
-      sessionStorage.setItem('accessToken', accessToken);
+      const { accessToken: token, user: userData } = res.data.data;
+      // 🔒 SECURITY: Store token in memory only (React state)
+      setAccessToken(token);
       setUser(userData);
       return { success: true };
     } catch (err) {
@@ -75,36 +82,12 @@ export function AuthProvider({ children }) {
   // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     try { await authApi.logout(); } catch (_) {}
-    sessionStorage.removeItem('accessToken');
+    setAccessToken(null);
     setUser(null);
   }, []);
 
-  // ── promoteUser — called by PromotionContext after admin approval ──────────
-  // Updates the current session if the promoted user IS the logged-in user.
-  const promoteUser = useCallback(async (userId, newRole) => {
-    setUser(prev => {
-      if (!prev) return prev;
-      const id = prev._id || prev.id;
-      if (id !== userId && id !== userId?.toString()) return prev;
-      return {
-        ...prev,
-        role:       newRole,
-        isPromoted: true,
-        promotedAt: new Date().toISOString(),
-        previousRole: prev.role,
-        // Archive the advisor code without removing it
-        advisorCode: prev.advisorCode,
-      };
-    });
-    // Refresh user object from server to get latest state
-    try {
-      const res = await authApi.me();
-      setUser(res.data.data);
-    } catch (_) {}
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, promoteUser }}>
+    <AuthContext.Provider value={{ user, loading, error, login, logout, accessToken }}>
       {children}
     </AuthContext.Provider>
   );

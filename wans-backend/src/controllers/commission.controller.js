@@ -40,6 +40,17 @@ const getMySummary = async (req, res, next) => {
       endDate: new Date()
     });
     
+    // Get today's summary (type-specific)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
+    
+    const todaySummary = await getCommissionSummary(req.user._id, {
+      startDate: today,
+      endDate: tomorrow
+    });
+    
     // Get breakdown by level
     const levelBreakdown = await Commission.aggregate([
       { $match: { userId: req.user._id } },
@@ -62,12 +73,21 @@ const getMySummary = async (req, res, next) => {
       success: true,
       data: {
         total:        summary.total,
-        RETAIL_PRICE: summary.RETAIL_PRICE,
+        RP:           summary.RP,
         IV:           summary.IV,
         SV:           summary.SV,
-        RF:           summary.RF,
+        RV:           summary.RV,
         count:        summary.count,
         thisMonth:    thisMonthSummary.total,
+        thisMonthRP:  thisMonthSummary.RP,
+        thisMonthIV:  thisMonthSummary.IV,
+        thisMonthSV:  thisMonthSummary.SV,
+        thisMonthRV:  thisMonthSummary.RV,
+        today:        todaySummary.total,
+        todayRP:      todaySummary.RP,
+        todayIV:      todaySummary.IV,
+        todaySV:      todaySummary.SV,
+        todayRV:      todaySummary.RV,
         levelBreakdown
       },
     });
@@ -84,10 +104,10 @@ const getCommissionsByOrder = async (req, res, next) => {
       
     // Group by type for better visualization
     const grouped = {
-      RETAIL_PRICE: commissions.filter(c => c.type === 'RETAIL_PRICE'),
+      RP: commissions.filter(c => c.type === 'RP'),
       IV: commissions.filter(c => c.type === 'IV'),
       SV: commissions.filter(c => c.type === 'SV'),
-      RF: commissions.filter(c => c.type === 'RF')
+      RV: commissions.filter(c => c.type === 'RV'),
     };
     
     res.json({ success: true, data: commissions, grouped });
@@ -119,5 +139,38 @@ const getSubtreeCommissions = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getMyCommissions, getMySummary, getCommissionsByOrder, getSubtreeCommissions };
+// GET /api/commissions - Admin/Manager view all commissions with filters
+const getAllCommissions = async (req, res, next) => {
+  try {
+    const { userId, type, status, startDate, endDate, limit = 50 } = req.query;
+    
+    const query = {};
+    
+    if (userId) query.userId = userId;
+    if (type) query.type = type;
+    if (status) query.status = status;
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+    
+    const commissions = await Commission.find(query)
+      .populate('userId', 'name role email')
+      .populate('orderId', 'orderNumber total status')
+      .sort({ date: -1 })
+      .limit(parseInt(limit))
+      .lean();
+      
+    res.json({ success: true, data: commissions });
+  } catch (err) { next(err); }
+};
+
+module.exports = { 
+  getMyCommissions, 
+  getMySummary, 
+  getCommissionsByOrder, 
+  getSubtreeCommissions,
+  getAllCommissions 
+};
 

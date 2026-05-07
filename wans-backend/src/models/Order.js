@@ -24,11 +24,25 @@ const orderSchema = new mongoose.Schema({
   productId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   quantity:    { type: Number, required: true, min: 1 },
   price:       { type: Number, required: true },
-  total:       { type: Number, required: true },
+  
+  // Tax information
+  taxRate:     { type: Number, default: 18 },           // Tax percentage applied
+  taxAmount:   { type: Number, default: 0 },            // Calculated tax amount
+  subtotal:    { type: Number, required: true },        // Amount before tax
+  total:       { type: Number, required: true },        // Final amount (subtotal + tax)
   
   // Order status
   status:      { type: String, enum: ['PENDING', 'APPROVED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'PENDING' },
-  paymentStatus: { type: String, enum: ['PENDING', 'PAID'], default: 'PENDING' },
+  paymentStatus: { type: String, enum: ['PENDING', 'PAID', 'FAILED'], default: 'PENDING' },
+  
+  // Payment details
+  paymentMethod: { type: String, enum: ['COD', 'ONLINE', 'UPI'], default: 'COD' },
+  paymentDetails: {
+    razorpay_order_id: { type: String, default: null },
+    razorpay_payment_id: { type: String, default: null },
+    razorpay_signature: { type: String, default: null },
+    paidAt: { type: Date, default: null }
+  },
   
   // Source and metadata
   source:      { type: String, default: 'WEBSITE' },
@@ -43,14 +57,50 @@ const orderSchema = new mongoose.Schema({
   customerPhone:    { type: String, default: null },
   customerLocation: { type: String, default: null },
   
+  // Delivery address (for all order types)
+  deliveryAddress: {
+    shopName:  { type: String, default: null },      // Shop name for Wholesale/Mini Stock
+    name:      { type: String, default: null },      // Contact person name
+    phone:     { type: String, default: null },      // Contact phone
+    street:    { type: String, default: null },
+    city:      { type: String, default: null },
+    state:     { type: String, default: null },
+    pinCode:   { type: String, default: null },
+    landmark:  { type: String, default: null },
+  },
+  
   // Snapshot of who was in the chain at time of sale — NEVER changes after creation
   hierarchySnapshot: { type: hierarchySnapshotSchema, default: null },
   
-  // NEW: Pool tracking for income distribution
+  // Snapshot of product commission values at time of sale — NEVER changes after creation
+  productSnapshot: {
+    rpPoints: { type: Number, default: 0 },  // Retail Point value per unit
+    ivPoints: { type: Number, default: 0 },  // Incentive Value per unit
+    svPoints: { type: Number, default: 0 },  // Salary Value per unit
+    rvPoints: { type: Number, default: 0 },  // Rewards Value per unit
+    
+    // NEW: Wholesale & Mini-Stock pricing snapshot
+    mrp: { type: Number, default: 0 },
+    wholesalePrice: { type: Number, default: 0 },
+    miniStockPrice: { type: Number, default: 0 },
+    wholesaleMargin: { type: Number, default: 0 },
+    miniStockMargin: { type: Number, default: 0 },
+  },
+
+  // Pool amounts computed at delivery (field × quantity)
   pools: {
+    RP: { type: Number, default: 0 },
     IV: { type: Number, default: 0 },
     SV: { type: Number, default: 0 },
-    RF: { type: Number, default: 0 }
+    RV: { type: Number, default: 0 },
+  },
+  
+  // NEW: Commission tracking for wholesale/mini-stock
+  buyerCommission: {
+    type: { type: String, enum: ['RP', 'WHOLESALE_MARGIN', 'MINISTOCK_MARGIN', 'NONE'], default: 'NONE' },
+    amountPerUnit: { type: Number, default: 0 },
+    totalAmount: { type: Number, default: 0 },
+    recorded: { type: Boolean, default: false },
   },
   
   // NEW: Distribution tracking

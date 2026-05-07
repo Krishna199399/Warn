@@ -1,33 +1,36 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { User, Mail, Phone, MapPin, Building2, Map, Hash, Globe } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Building2, Map, Hash, Globe, Loader2, Store } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
-// InputField component outside to prevent re-creation
 const InputField = ({ icon: Icon, label, name, type = 'text', placeholder, required = true, value, onChange, error }) => (
-  <div>
-    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
+  <div className="space-y-1.5">
+    <Label htmlFor={name} className={error ? 'text-destructive' : ''}>
+      {label} {required && <span className="text-destructive">*</span>}
+    </Label>
     <div className="relative">
-      <Icon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input
+      <Icon size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${error ? 'text-destructive' : 'text-muted-foreground'}`} />
+      <Input
+        id={name}
         type={type}
         name={name}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full pl-10 pr-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-colors ${
-          error ? 'border-red-300 focus:border-red-500' : 'border-slate-200 focus:border-green-500'
-        }`}
+        className={`pl-9 ${error ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
       />
     </div>
     {error && (
-      <p className="mt-1 text-xs text-red-600">{error}</p>
+      <p className="text-xs text-destructive">{error}</p>
     )}
   </div>
 );
 
 export default function CheckoutForm({ onSubmit, loading }) {
   const [formData, setFormData] = useState({
+    shopName: '',
     name: '',
     email: '',
     phone: '',
@@ -35,13 +38,13 @@ export default function CheckoutForm({ onSubmit, loading }) {
     city: '',
     state: '',
     zipCode: '',
+    landmark: '',
     country: 'India',
   });
 
   const [errors, setErrors] = useState({});
   const isSubmittingRef = useRef(false);
 
-  // Reset submission flag when loading completes
   React.useEffect(() => {
     if (!loading) {
       isSubmittingRef.current = false;
@@ -51,7 +54,6 @@ export default function CheckoutForm({ onSubmit, loading }) {
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     setErrors(prev => {
       if (prev[name]) {
         const newErrors = { ...prev };
@@ -65,21 +67,17 @@ export default function CheckoutForm({ onSubmit, loading }) {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
+    if (!formData.shopName.trim()) newErrors.shopName = 'Shop name is required';
+    if (!formData.name.trim()) newErrors.name = 'Contact person name is required';
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone is required';
     } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Phone must be 10 digits';
     }
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    if (!formData.address.trim()) newErrors.address = 'Street address is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.zipCode.trim()) newErrors.zipCode = 'Zip code is required';
+    if (!formData.zipCode.trim()) newErrors.zipCode = 'Pin code is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -87,11 +85,7 @@ export default function CheckoutForm({ onSubmit, loading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Prevent double submission
-    if (isSubmittingRef.current) {
-      return;
-    }
+    if (isSubmittingRef.current) return;
     
     if (validate()) {
       isSubmittingRef.current = true;
@@ -101,28 +95,31 @@ export default function CheckoutForm({ onSubmit, loading }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Personal Details */}
-      <div className="card p-6 space-y-4">
-        <h2 className="text-lg font-bold text-slate-900">Personal Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Shop Details */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Shop Details</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <InputField
+              icon={Store}
+              label="Shop Name"
+              name="shopName"
+              placeholder="Warnamayii Agro Store"
+              value={formData.shopName}
+              onChange={handleChange}
+              error={errors.shopName}
+            />
+          </div>
           <InputField
             icon={User}
-            label="Full Name"
+            label="Contact Person"
             name="name"
             placeholder="John Doe"
             value={formData.name}
             onChange={handleChange}
             error={errors.name}
-          />
-          <InputField
-            icon={Mail}
-            label="Email"
-            name="email"
-            type="email"
-            placeholder="john@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
           />
           <InputField
             icon={Phone}
@@ -134,18 +131,20 @@ export default function CheckoutForm({ onSubmit, loading }) {
             onChange={handleChange}
             error={errors.phone}
           />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Shipping Details */}
-      <div className="card p-6 space-y-4">
-        <h2 className="text-lg font-bold text-slate-900">Shipping Details</h2>
-        <div className="space-y-4">
+      {/* Delivery Address */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Delivery Address</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <InputField
             icon={MapPin}
-            label="Address"
+            label="Street Address"
             name="address"
-            placeholder="Street address, apartment, suite, etc."
+            placeholder="Shop No. 123, Main Road"
             value={formData.address}
             onChange={handleChange}
             error={errors.address}
@@ -171,7 +170,7 @@ export default function CheckoutForm({ onSubmit, loading }) {
             />
             <InputField
               icon={Hash}
-              label="Zip Code"
+              label="Pin Code"
               name="zipCode"
               placeholder="400001"
               value={formData.zipCode}
@@ -179,33 +178,33 @@ export default function CheckoutForm({ onSubmit, loading }) {
               error={errors.zipCode}
             />
             <InputField
-              icon={Globe}
-              label="Country"
-              name="country"
-              placeholder="India"
-              value={formData.country}
+              icon={MapPin}
+              label="Landmark (Optional)"
+              name="landmark"
+              placeholder="Near City Hospital"
+              value={formData.landmark}
               onChange={handleChange}
-              error={errors.country}
+              required={false}
             />
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full h-11 text-base"
       >
         {loading ? (
           <>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Processing...
           </>
         ) : (
           'Place Order'
         )}
-      </button>
+      </Button>
     </form>
   );
 }

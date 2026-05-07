@@ -1,6 +1,10 @@
 const Farmer = require('../models/Farmer');
 const Order  = require('../models/Order');
+const User   = require('../models/User');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/farmers/my — all farmers linked to current advisor
+// ─────────────────────────────────────────────────────────────────────────────
 const getMyFarmers = async (req, res, next) => {
   try {
     // 1. Get registered farmers
@@ -101,6 +105,43 @@ const getMyFarmers = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/farmers/lookup/:phone — Lookup farmer by phone (used by POS)
+// ─────────────────────────────────────────────────────────────────────────────
+const lookupByPhone = async (req, res, next) => {
+  try {
+    const phone = req.params.phone?.trim();
+    if (!phone || phone.length < 10) {
+      return res.json({ success: true, data: null });
+    }
+
+    const farmer = await Farmer.findOne({ phone })
+      .populate('advisorId', 'name employeeCode status role')
+      .lean();
+
+    if (!farmer) {
+      return res.json({ success: true, data: null }); // new customer
+    }
+
+    // Check if assigned advisor is still active
+    let advisorActive = false;
+    if (farmer.advisorId) {
+      advisorActive = farmer.advisorId.status === 'APPROVED';
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...farmer,
+        advisorActive,
+      },
+    });
+  } catch (err) { next(err); }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/farmers/:id
+// ─────────────────────────────────────────────────────────────────────────────
 const getFarmer = async (req, res, next) => {
   try {
     const f = await Farmer.findById(req.params.id);
@@ -109,13 +150,30 @@ const getFarmer = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/farmers — Create farmer (manual registration by advisor)
+// ─────────────────────────────────────────────────────────────────────────────
 const createFarmer = async (req, res, next) => {
   try {
-    const f = await Farmer.create({ ...req.body, advisorId: req.user._id });
+    // Check if phone already exists
+    const existing = await Farmer.findOne({ phone: req.body.phone });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'A farmer with this phone number already exists' });
+    }
+
+    const f = await Farmer.create({
+      ...req.body,
+      advisorId: req.user._id,
+      assignedAt: new Date(),
+      assignmentSource: 'MANUAL',
+    });
     res.status(201).json({ success: true, data: f });
   } catch (err) { next(err); }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/farmers/:id
+// ─────────────────────────────────────────────────────────────────────────────
 const updateFarmer = async (req, res, next) => {
   try {
     const f = await Farmer.findOneAndUpdate(
@@ -127,6 +185,9 @@ const updateFarmer = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/farmers/:id/orders
+// ─────────────────────────────────────────────────────────────────────────────
 const getFarmerOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ farmerId: req.params.id })
@@ -135,4 +196,94 @@ const getFarmerOrders = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getMyFarmers, getFarmer, createFarmer, updateFarmer, getFarmerOrders };
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/farmers/:id/reassign — Admin reassigns farmer to a different advisor
+// ─────────────────────────────────────────────────────────────────────────────
+const reassignAdvisor = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Admin only' });
+    }
+
+    const { newAdvisorId } = req.body;
+    if (!newAdvisorId) {
+      return res.status(400).json({ success: false, error: 'newAdvisorId is required' });
+    }
+
+    const farmer = await Farmer.findById(req.params.id);
+    if (!farmer) return res.status(404).json({ success: false, error: 'Farmer not found' });
+
+    const newAdvisor = await User.findById(newAdvisorId);
+    if (!newAdvisor || newAdvisor.status !== 'APPROVED') {
+      return res.status(400).json({ success: false, error: 'Invalid or inactive advisor' });
+    }
+
+    // Log previous assignment in audit trail
+    if (farmer.advisorId) {
+      farmer.previousAdvisors.push({
+        advisorId: farmer.advisorId,
+        from: farmer.assignedAt,
+        to: new Date(),
+        reason: 'ADMIN_REASSIGN',
+      });
+    }
+
+    farmer.advisorId = newAdvisorId;
+    farmer.assignedAt = new Date();
+    farmer.assignmentSource = 'REASSIGNED';
+    await farmer.save();
+
+    const populated = await Farmer.findById(farmer._id)
+      .populate('advisorId', 'name employeeCode role')
+      .lean();
+
+    res.json({ success: true, data: populated, message: 'Farmer reassigned successfully' });
+  } catch (err) { next(err); }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bulk reassign all farmers from a deactivated advisor to their DO Manager
+// (Called internally when an advisor is deactivated)
+// ─────────────────────────────────────────────────────────────────────────────
+async function reassignFarmersFromAdvisor(advisorId) {
+  try {
+    const advisor = await User.findById(advisorId).lean();
+    if (!advisor) return 0;
+
+    // Find the advisor's DO Manager (parentId)
+    let newAdvisorId = null;
+    if (advisor.parentId) {
+      const doManager = await User.findById(advisor.parentId).lean();
+      if (doManager && doManager.status === 'APPROVED') {
+        newAdvisorId = doManager._id;
+      }
+    }
+
+    const farmers = await Farmer.find({ advisorId });
+    if (farmers.length === 0) return 0;
+
+    for (const farmer of farmers) {
+      farmer.previousAdvisors.push({
+        advisorId: farmer.advisorId,
+        from: farmer.assignedAt,
+        to: new Date(),
+        reason: 'DEACTIVATED',
+      });
+      farmer.advisorId = newAdvisorId;
+      farmer.assignedAt = newAdvisorId ? new Date() : null;
+      farmer.assignmentSource = newAdvisorId ? 'REASSIGNED' : null;
+      await farmer.save();
+    }
+
+    console.log(`🔄 Reassigned ${farmers.length} farmers from ${advisorId} → ${newAdvisorId || 'UNASSIGNED'}`);
+    return farmers.length;
+  } catch (err) {
+    console.error('❌ reassignFarmersFromAdvisor:', err.message);
+    return 0;
+  }
+}
+
+module.exports = {
+  getMyFarmers, getFarmer, createFarmer, updateFarmer, getFarmerOrders,
+  lookupByPhone, reassignAdvisor, reassignFarmersFromAdvisor,
+};

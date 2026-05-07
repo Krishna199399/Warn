@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const getMyInventory = async (req, res, next) => {
   try {
     let inv = await Inventory.findOne({ ownerId: req.user._id })
-      .populate('items.productId', 'name sku category unit price image brand').lean();
+      .populate('items.productId', 'name sku category unit price image brand isDeleted deletedAt').lean();
     
     // Create inventory if doesn't exist
     if (!inv) {
@@ -18,7 +18,7 @@ const getMyInventory = async (req, res, next) => {
         items: [],
       });
       inv = await Inventory.findById(inv._id)
-        .populate('items.productId', 'name sku category unit price image brand').lean();
+        .populate('items.productId', 'name sku category unit price image brand isDeleted deletedAt').lean();
     }
     
     res.json({ success: true, data: inv });
@@ -41,6 +41,11 @@ const addStockFromCompany = async (req, res, next) => {
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    // Prevent adding stock for deleted products
+    if (product.isDeleted) {
+      return res.status(400).json({ success: false, error: 'Cannot add stock for deleted/archived products' });
     }
     
     const session = await mongoose.startSession();
@@ -91,7 +96,7 @@ const addStockFromCompany = async (req, res, next) => {
       await session.commitTransaction();
       
       const updated = await Inventory.findById(inv._id)
-        .populate('items.productId', 'name sku category unit price image brand');
+        .populate('items.productId', 'name sku category unit price image brand isDeleted deletedAt');
       
       res.json({ success: true, data: updated, message: 'Stock added successfully' });
     } catch (err) {
@@ -125,6 +130,11 @@ const transferToMiniStock = async (req, res, next) => {
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    // Prevent transferring deleted products
+    if (product.isDeleted) {
+      return res.status(400).json({ success: false, error: 'Cannot transfer deleted/archived products' });
     }
     
     const session = await mongoose.startSession();
@@ -190,7 +200,7 @@ const transferToMiniStock = async (req, res, next) => {
       await session.commitTransaction();
       
       const updated = await Inventory.findById(wholesaleInv._id)
-        .populate('items.productId', 'name sku category unit price image brand');
+        .populate('items.productId', 'name sku category unit price image brand isDeleted deletedAt');
       
       res.json({ success: true, data: updated, message: 'Stock transferred successfully' });
     } catch (err) {
@@ -213,7 +223,7 @@ const getTransferHistory = async (req, res, next) => {
     })
       .populate('fromUserId', 'name role')
       .populate('toUserId', 'name role')
-      .populate('productId', 'name sku category unit')
+      .populate('productId', 'name sku category unit isDeleted deletedAt')
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();

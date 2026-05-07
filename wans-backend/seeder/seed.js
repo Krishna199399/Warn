@@ -9,7 +9,6 @@ const Order            = require('../src/models/Order');
 const Commission       = require('../src/models/Commission');
 const Task             = require('../src/models/Task');
 const Inventory        = require('../src/models/Inventory');
-const PromotionRequest = require('../src/models/PromotionRequest');
 
 const { buildHierarchySnapshot, calculateCommissions } = require('../src/services/hierarchy.service');
 
@@ -108,7 +107,7 @@ async function seed() {
     await Promise.all([
       User.deleteMany({}), Product.deleteMany({}), Farmer.deleteMany({}),
       Order.deleteMany({}), Commission.deleteMany({}), Task.deleteMany({}),
-      Inventory.deleteMany({}), PromotionRequest.deleteMany({}),
+      Inventory.deleteMany({}),
     ]);
     console.log('🗑  Cleared all collections');
 
@@ -320,66 +319,6 @@ async function seed() {
     ]);
     console.log('🏪 Created inventory');
 
-    // ── Promotion Requests ────────────────────────────────────────────────────
-    await PromotionRequest.insertMany([
-      // Pending requests
-      {
-        userId: mohanId,
-        userRole: 'ADVISOR',
-        nextRole: 'DO_MANAGER',
-        parentId: emailToId['do@wans.com'],
-        status: 'REQUESTED',
-        requestedAt: new Date('2024-04-05'),
-        performanceSnapshot: { totalSales: 48800, teamSize: 4, targetsAchieved: 3 },
-      },
-      {
-        userId: dineshId,
-        userRole: 'ADVISOR',
-        nextRole: 'DO_MANAGER',
-        parentId: emailToId['do2@wans.com'],
-        status: 'PARENT_APPROVED',
-        requestedAt: new Date('2024-04-01'),
-        parentNote: 'Excellent performance, recommended for promotion',
-        performanceSnapshot: { totalSales: 45090, teamSize: 3, targetsAchieved: 2 },
-      },
-      // Approved request
-      {
-        userId: lalitaId,
-        userRole: 'ADVISOR',
-        nextRole: 'DO_MANAGER',
-        parentId: emailToId['do3@wans.com'],
-        status: 'ADMIN_APPROVED',
-        requestedAt: new Date('2024-03-20'),
-        promotedAt: new Date('2024-04-01'),
-        parentNote: 'Strong sales record and team leadership',
-        adminNote: 'Approved for promotion to DO Manager',
-        performanceSnapshot: { totalSales: 51650, teamSize: 3, targetsAchieved: 4 },
-      },
-      // Rejected request
-      {
-        userId: savitaId,
-        userRole: 'ADVISOR',
-        nextRole: 'DO_MANAGER',
-        parentId: emailToId['do@wans.com'],
-        status: 'REJECTED',
-        requestedAt: new Date('2024-03-15'),
-        rejectedBy: 'PARENT',
-        rejectionReason: 'Need to complete 6 months in current role',
-        performanceSnapshot: { totalSales: 33660, teamSize: 3, targetsAchieved: 2 },
-      },
-      // Another pending
-      {
-        userId: prakashId,
-        userRole: 'ADVISOR',
-        nextRole: 'DO_MANAGER',
-        parentId: emailToId['do4@wans.com'],
-        status: 'REQUESTED',
-        requestedAt: new Date('2024-04-08'),
-        performanceSnapshot: { totalSales: 46900, teamSize: 3, targetsAchieved: 3 },
-      },
-    ]);
-    console.log('🎯 Created promotion requests');
-
     console.log('\n🌱 Seed complete! Demo accounts:');
     console.log('\n📊 HIERARCHY:');
     console.log('   ADMIN          → admin@wans.com     / admin123');
@@ -416,7 +355,6 @@ async function seed() {
     console.log(`   • ${orderSeeds.length} orders with commission tracking`);
     console.log(`   • 22 tasks assigned to advisors`);
     console.log(`   • 4 inventory records (2 wholesale + 2 mini stock)`);
-    console.log(`   • 5 promotion requests (various statuses)`);
     process.exit(0);
   } catch (err) {
     console.error('❌ Seed failed:', err);

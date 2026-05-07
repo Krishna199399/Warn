@@ -15,6 +15,20 @@ const start = async () => {
       console.log(`🚀 WANS API running on port ${PORT} [${ENV}]`);
     });
 
+    // ── Payout Scheduler (runs daily at 06:00 AM IST) ──────────────────────
+    const cron = require('node-cron');
+    cron.schedule('0 6 * * *', async () => {
+      console.log('⏰ Payout scheduler triggered...');
+      try {
+        const { runScheduledPayouts } = require('./src/services/payout.service');
+        await runScheduledPayouts();
+      } catch (err) {
+        console.error('❌ Payout scheduler error:', err.message);
+      }
+    }, { timezone: 'Asia/Kolkata' });
+    console.log('✅ Payout scheduler registered (daily 6AM IST)');
+
+
     // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {

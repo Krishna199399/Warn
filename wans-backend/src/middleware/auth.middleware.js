@@ -19,4 +19,18 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// Non-blocking version — populates req.user if token is valid, silently ignores otherwise
+const optionalAuth = async (req, _res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('role status');
+      if (user && user.status !== 'Inactive') req.user = user;
+    } catch (_) { /* invalid token — treat as unauthenticated */ }
+  }
+  next();
+};
+
+module.exports = { protect, optionalAuth };

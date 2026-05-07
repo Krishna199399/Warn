@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { productsApi } from '../../api/products.api';
-import { PageHeader, LoadingSpinner } from '../../components/ui';
+import { categoriesApi } from '../../api/categories.api';
+import { Skeleton } from '@/components/ui/skeleton';
 import ImageUploader from '../../components/admin/ImageUploader';
 import ProductPreviewCard from '../../components/admin/ProductPreviewCard';
 import {
   Package, ChevronRight, CheckCircle2, AlertCircle,
-  Loader2, ArrowLeft, Info, Tag as TagIcon, X
+  Loader2, ArrowLeft, Info, Tag as TagIcon, X, Lock
 } from 'lucide-react';
 
-const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticide', 'Equipment', 'Supplement'];
 const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 'ton'];
 
 function Section({ number, title, icon: Icon, children }) {
@@ -69,6 +69,20 @@ export default function EditProductPage() {
   const [loading, setLoading]     = useState(false);
   const [fetching, setFetching]   = useState(true);
   const [toast, setToast]         = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    categoriesApi.getAll()
+      .then(res => {
+        setCategories(res.data.data || []);
+      })
+      .catch(err => {
+        console.error('Failed to load categories:', err);
+      })
+      .finally(() => setLoadingCategories(false));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -78,13 +92,27 @@ export default function EditProductPage() {
         setForm({
           name:        p.name        || '',
           sku:         p.sku         || '',
-          category:    p.category    || CATEGORIES[0],
+          category:    p.category    || '',
           unit:        p.unit        || UNITS[0],
-          price:       String(p.price) || '',
+          unitQuantity: String(p.unitQuantity ?? ''),
+          actualPrice: String(p.actualPrice ?? ''),
+          mrp:         String(p.mrp  ?? ''),
+          rp:          String(p.rp   ?? ''),
+          sv:          String(p.sv   ?? ''),
+          rv:          String(p.rv   ?? ''),
+          iv:          String(p.iv   ?? ''),
+          wholesalePrice: String(p.wholesalePrice ?? ''),
+          miniStockPrice: String(p.miniStockPrice ?? ''),
           description: p.description || '',
           brand:       p.brand       || '',
           weight:      p.weight      || '',
           tagsInput:   (p.tags || []).join(', '),
+          taxRate:     String(p.taxRate ?? '18'),
+          ingredients: p.ingredients || '',
+          howToUse:    p.howToUse    || '',
+          benefits:    p.benefits    || '',
+          dosage:      p.dosage      || '',
+          disclaimer:  p.disclaimer  || '',
         });
         if (p.image) {
           const base = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -99,11 +127,26 @@ export default function EditProductPage() {
     })();
   }, [id]);
 
-  if (fetching) return <LoadingSpinner />;
-  if (!form)    return null;
+  if (fetching) return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid lg:grid-cols-[320px_1fr] gap-6">
+        <Skeleton className="h-64 rounded-2xl" />
+        <div className="space-y-4">{[1,2,3].map(i=><Skeleton key={i} className="h-32 rounded-xl"/>)}</div>
+      </div>
+    </div>
+  );
+  if (!form) return null;
 
   const set = (key, val) => {
-    setForm(f => ({ ...f, [key]: val }));
+    setForm(f => {
+      const updated = { ...f, [key]: val };
+      // Auto-sync: When actualPrice changes, update mrp field too
+      if (key === 'actualPrice') {
+        updated.mrp = val;
+      }
+      return updated;
+    });
     if (errors[key]) setErrors(e => ({ ...e, [key]: '' }));
   };
 
@@ -114,8 +157,8 @@ export default function EditProductPage() {
     if (!form.name.trim())     e.name = 'Product name is required';
     if (!form.sku.trim())      e.sku  = 'SKU is required';
     if (!form.category)        e.category = 'Select a category';
-    if (!form.price || isNaN(parseFloat(form.price)) || parseFloat(form.price) < 0)
-                               e.price = 'Enter a valid price (≥ 0)';
+    if (!form.actualPrice || isNaN(parseFloat(form.actualPrice)) || parseFloat(form.actualPrice) < 0)
+                               e.actualPrice = 'Enter a valid MRP price (≥ 0)';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -131,10 +174,25 @@ export default function EditProductPage() {
       fd.append('sku',         form.sku.trim());
       fd.append('category',    form.category);
       fd.append('unit',        form.unit);
-      fd.append('price',       form.price);
+      if (form.unitQuantity) fd.append('unitQuantity', form.unitQuantity);
+      fd.append('actualPrice', form.actualPrice);
+      fd.append('price',       form.actualPrice); // Use actualPrice as price (no discount)
+      fd.append('taxRate',     form.taxRate || '18');
+      if (form.mrp) fd.append('mrp', form.mrp);
+      if (form.rp)  fd.append('rp',  form.rp);
+      if (form.sv)  fd.append('sv',  form.sv);
+      if (form.rv)  fd.append('rv',  form.rv);
+      if (form.iv)  fd.append('iv',  form.iv);
+      if (form.wholesalePrice) fd.append('wholesalePrice', form.wholesalePrice);
+      if (form.miniStockPrice) fd.append('miniStockPrice', form.miniStockPrice);
       fd.append('description', form.description.trim());
       fd.append('brand',       form.brand.trim());
       fd.append('weight',      form.weight.trim());
+      fd.append('ingredients', form.ingredients.trim());
+      fd.append('howToUse',    form.howToUse.trim());
+      fd.append('benefits',    form.benefits.trim());
+      fd.append('dosage',      form.dosage.trim());
+      fd.append('disclaimer',  form.disclaimer.trim());
       parsedTags.forEach(t => fd.append('tags', t));
       if (imageFile)  fd.append('image', imageFile);
       if (clearImage) fd.append('clearImage', 'true');
@@ -155,15 +213,15 @@ export default function EditProductPage() {
 
   return (
     <div className="space-y-5 page-enter">
-      <PageHeader
-        title="Edit Product"
-        subtitle="Update product details and save changes"
-        actions={
-          <button onClick={() => navigate('/app/products')} className="btn-secondary">
-            <ArrowLeft size={15} /> Back to Products
-          </button>
-        }
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Edit Product</h1>
+          <p className="text-muted-foreground text-sm mt-1">Update product details and save changes</p>
+        </div>
+        <button onClick={() => navigate('/app/products')} className="btn-secondary flex items-center gap-1.5 text-sm">
+          <ArrowLeft size={15} /> Back to Products
+        </button>
+      </div>
 
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
         <span>Products</span>
@@ -172,22 +230,28 @@ export default function EditProductPage() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="grid lg:grid-cols-[320px_1fr] gap-6 items-start">
+        <div className="grid lg:grid-cols-[1fr_2fr] xl:grid-cols-[320px_1fr] gap-6 items-start">
 
           {/* Left: Preview */}
-          <ProductPreviewCard
-            name={form.name}
-            category={form.category}
-            price={form.price}
-            unit={form.unit}
-            brand={form.brand}
-            tags={parsedTags}
-            image={imageFile}
-            previewUrl={currentPreviewUrl}
-          />
+          <div className="lg:sticky lg:top-6">
+            <ProductPreviewCard
+              name={form.name}
+              category={form.category}
+              actualPrice={form.actualPrice}
+              price={form.actualPrice}
+              unit={form.unit}
+              unitQuantity={form.unitQuantity}
+              brand={form.brand}
+              tags={parsedTags}
+              image={imageFile}
+              previewUrl={currentPreviewUrl}
+              description={form.description}
+              taxRate={form.taxRate}
+            />
+          </div>
 
           {/* Right: Form */}
-          <div className="space-y-5">
+          <div className="space-y-5 min-w-0">{/* min-w-0 prevents overflow */}
 
             <Section number="1" title="Product Image" icon={Package}>
               <ImageUploader
@@ -213,28 +277,81 @@ export default function EditProductPage() {
                 </Field>
 
                 <Field label="Category" required error={errors.category}>
-                  <select id="edit-category" value={form.category}
-                    onChange={e => set('category', e.target.value)} className="input-field">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <select 
+                    id="edit-category" 
+                    value={form.category}
+                    onChange={e => set('category', e.target.value)} 
+                    className="input-field"
+                    disabled={loadingCategories}
+                  >
+                    {loadingCategories ? (
+                      <option value="">Loading categories...</option>
+                    ) : categories.length === 0 ? (
+                      <option value="">No categories available</option>
+                    ) : (
+                      <>
+                        <option value="">Select a category</option>
+                        {categories.map(c => (
+                          <option key={c._id} value={c.name}>{c.name}</option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </Field>
+              </div>
 
-                <Field label="Unit">
-                  <select id="edit-unit" value={form.unit}
-                    onChange={e => set('unit', e.target.value)} className="input-field">
-                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Package Size" hint="e.g. 40 kg, 5 liter, 100 unit">
+                  <div className="flex gap-2">
+                    <input
+                      id="edit-unit-quantity"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.unitQuantity}
+                      onChange={e => set('unitQuantity', e.target.value)}
+                      placeholder="40"
+                      className="input-field w-32"
+                    />
+                    <select
+                      id="edit-unit"
+                      value={form.unit}
+                      onChange={e => set('unit', e.target.value)}
+                      className="input-field w-40"
+                    >
+                      {UNITS.map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
                 </Field>
 
-                <Field label="Price (₹)" required error={errors.price}>
+                <Field label="Tax Rate (%)" hint="GST/Tax percentage for this product" required error={errors.taxRate}>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
-                    <input id="edit-price" type="number" min="0" step="0.01" value={form.price}
-                      onChange={e => set('price', e.target.value)} placeholder="0.00"
-                      className={`input-field pl-7 ${errors.price ? 'border-red-400' : ''}`} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">%</span>
+                    <input
+                      id="edit-tax-rate"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={form.taxRate}
+                      onChange={e => set('taxRate', e.target.value)}
+                      placeholder="18"
+                      className={`input-field pr-8 ${errors.taxRate ? 'border-red-400' : ''}`}
+                    />
                   </div>
                 </Field>
               </div>
+
+              <Field label="MRP Price (₹)" hint="Maximum Retail Price for this product" required error={errors.actualPrice}>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                  <input id="edit-actual-price" type="number" min="0" step="0.01" value={form.actualPrice}
+                    onChange={e => set('actualPrice', e.target.value)} placeholder="0.00"
+                    className={`input-field pl-7 ${errors.actualPrice ? 'border-red-400' : ''}`} />
+                </div>
+              </Field>
 
               <Field label="Description">
                 <textarea id="edit-description" rows={3} value={form.description}
@@ -243,7 +360,114 @@ export default function EditProductPage() {
               </Field>
             </Section>
 
-            <Section number="3" title="Additional Information" icon={TagIcon}>
+            {/* Section 2.5 — Product Details (Expandable Sections) */}
+            <Section number="2.5" title="Product Details (Optional)" icon={Info}>
+              <p className="text-xs text-slate-400 -mt-1 mb-4">
+                These sections will appear as expandable panels on the product detail page. Leave blank to hide.
+              </p>
+              
+              <Field label="Ingredients" hint="List the ingredients or composition of the product">
+                <textarea
+                  id="edit-ingredients"
+                  rows={3}
+                  value={form.ingredients}
+                  onChange={e => set('ingredients', e.target.value)}
+                  placeholder="e.g. Organic compounds, natural extracts..."
+                  className="input-field resize-none"
+                />
+              </Field>
+
+              <Field label="How to Use" hint="Provide detailed usage instructions">
+                <textarea
+                  id="edit-how-to-use"
+                  rows={5}
+                  value={form.howToUse}
+                  onChange={e => set('howToUse', e.target.value)}
+                  placeholder="e.g. Spray: - Use for spray by mixing 2 to 2.5 ml in 1 liter water.&#10;Drip: - Use for one acre land by mixing 250 ml in 200 liters water."
+                  className="input-field resize-none"
+                />
+              </Field>
+
+              <Field label="Benefits" hint="List the key benefits and advantages">
+                <textarea
+                  id="edit-benefits"
+                  rows={4}
+                  value={form.benefits}
+                  onChange={e => set('benefits', e.target.value)}
+                  placeholder="e.g. Improves crop yield, protects against pests..."
+                  className="input-field resize-none"
+                />
+              </Field>
+
+              <Field label="Dosage" hint="Specify recommended dosage and application rates">
+                <textarea
+                  id="edit-dosage"
+                  rows={3}
+                  value={form.dosage}
+                  onChange={e => set('dosage', e.target.value)}
+                  placeholder="e.g. 250 ml per acre, apply every 15 days..."
+                  className="input-field resize-none"
+                />
+              </Field>
+
+              <Field label="Disclaimer" hint="Add any warnings, precautions, or legal disclaimers">
+                <textarea
+                  id="edit-disclaimer"
+                  rows={3}
+                  value={form.disclaimer}
+                  onChange={e => set('disclaimer', e.target.value)}
+                  placeholder="e.g. Keep out of reach of children. Use protective equipment..."
+                  className="input-field resize-none"
+                />
+              </Field>
+            </Section>
+
+            {/* Section 3 — Pricing & Values */}
+            <Section number="3" title="Pricing & Values" icon={Info}>
+              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+                <Lock size={16} className="text-amber-600" />
+                <p className="text-xs text-amber-800">
+                  <strong>Admin Only:</strong> These pricing values are hidden from other users and only visible to administrators.
+                </p>
+              </div>
+              <p className="text-xs text-slate-400 -mt-1 mb-4">All value fields are optional. Enter ₹ amounts for each pricing tier.</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { key: 'mrp', label: 'MRP',                hint: 'Auto-synced from MRP Price above', readOnly: true },
+                  { key: 'wholesalePrice', label: 'Wholesale Price', hint: 'Price for Wholesale buyers' },
+                  { key: 'miniStockPrice', label: 'Mini Stock Price', hint: 'Price for Mini Stock buyers' },
+                  { key: 'rp',  label: 'RP – Retail Point',   hint: 'Price at retail point' },
+                  { key: 'sv',  label: 'SV – Salary Value',   hint: 'Salary value component' },
+                  { key: 'rv',  label: 'RV – Rewards Value',  hint: 'Rewards value component' },
+                  { key: 'iv',  label: 'IV – Incentive Value', hint: 'Incentive value component' },
+                ].map(({ key, label, hint, readOnly }) => (
+                  <Field key={key} label={label} hint={hint}>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                      <input
+                        id={`edit-${key}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form[key]}
+                        onChange={e => set(key, e.target.value)}
+                        placeholder="0.00"
+                        className={`input-field pl-7 ${readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
+                        readOnly={readOnly}
+                      />
+                      {readOnly && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600 font-medium">
+                          Auto
+                        </span>
+                      )}
+                    </div>
+                  </Field>
+                ))}
+              </div>
+            </Section>
+
+            {/* Section 4 — Additional Information */}
+            <Section number="4" title="Additional Information" icon={TagIcon}>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Brand">
                   <input id="edit-brand" type="text" value={form.brand}

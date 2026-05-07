@@ -33,6 +33,17 @@ const connectDB = async () => {
       }
     }
 
+    // One-time: fix old Farmer phone index (drop non-sparse, keep sparse)
+    try {
+      const farmersColl = conn.connection.db.collection('farmers');
+      const indexes = await farmersColl.indexes();
+      const oldPhoneIdx = indexes.find(i => i.key?.phone === 1 && !i.sparse);
+      if (oldPhoneIdx) {
+        await farmersColl.dropIndex(oldPhoneIdx.name);
+        console.log('🔧 Dropped old non-sparse phone index on farmers');
+      }
+    } catch (_) { /* index already gone or doesn't exist */ }
+
     // Handle MongoDB connection events
     mongoose.connection.on('error', (err) => {
       console.error('❌ MongoDB connection error:', err);

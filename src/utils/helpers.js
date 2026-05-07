@@ -13,6 +13,12 @@ export function formatCurrency(amount) {
   }).format(amount);
 }
 
+export function formatPoints(points) {
+  return new Intl.NumberFormat('en-IN', {
+    maximumFractionDigits: 0,
+  }).format(points) + ' pts';
+}
+
 export function formatNumber(num) {
   if (num >= 10000000) return (num / 10000000).toFixed(1) + 'Cr';
   if (num >= 100000) return (num / 100000).toFixed(1) + 'L';
@@ -152,5 +158,56 @@ export function calculateWholesaleKPIs(orders, inventory, userId) {
     deliveredOrders,
     totalStockItems,
     lowStockAlerts,
+  };
+}
+
+// Group items by a specific field
+export function groupByField(items, field) {
+  if (!items || !Array.isArray(items)) return {};
+  
+  return items.reduce((acc, item) => {
+    const key = item[field];
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+// Count items by a specific field
+export function countByField(items, field) {
+  if (!items || !Array.isArray(items)) return {};
+  
+  return items.reduce((acc, item) => {
+    const key = item[field];
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+// Filter items by search term across multiple fields
+export function searchItems(items, searchTerm, fields) {
+  if (!searchTerm || !items || !Array.isArray(items)) return items;
+  
+  const term = searchTerm.toLowerCase();
+  return items.filter(item =>
+    fields.some(field => {
+      const value = field.split('.').reduce((obj, key) => obj?.[key], item);
+      return value?.toString().toLowerCase().includes(term);
+    })
+  );
+}
+
+// Calculate percentage change
+export function calculatePercentageChange(current, previous) {
+  if (!previous || previous === 0) return 0;
+  return ((current - previous) / previous) * 100;
+}
+
+// Get trend direction and formatted value
+export function getTrend(current, previous) {
+  const change = calculatePercentageChange(current, previous);
+  return {
+    value: `${change > 0 ? '+' : ''}${change.toFixed(1)}%`,
+    direction: change > 0 ? 'up' : change < 0 ? 'down' : 'neutral',
   };
 }

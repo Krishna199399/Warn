@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usersApi } from '../../api/users.api';
-import { Card, AnimatedStat } from '../ui';
+// Legacy Card/AnimatedStat removed — component uses className="card" via CSS
 import {
   MapPin, Phone, ChevronDown, ChevronUp, TrendingUp,
   Users, ShoppingCart, Award, BarChart2, X
@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/helpers';
 
-export default function EmployeeCard({ employee, accentColor = 'indigo' }) {
+export default function EmployeeCard({ employee, accentColor = 'indigo', hideFinancials = false }) {
   const [expanded, setExpanded] = useState(false);
   const [perf, setPerf] = useState(null);
   const [loadingPerf, setLoadingPerf] = useState(false);
@@ -26,7 +26,7 @@ export default function EmployeeCard({ employee, accentColor = 'indigo' }) {
   const colors = colorMap[accentColor] || colorMap.indigo;
 
   const handleExpand = () => {
-    if (!expanded && !perf) {
+    if (!expanded && !perf && !hideFinancials) {
       setLoadingPerf(true);
       usersApi.getPerformance(employee._id)
         .then(r => setPerf(r.data.data))
@@ -39,7 +39,7 @@ export default function EmployeeCard({ employee, accentColor = 'indigo' }) {
   const m = employee;
 
   return (
-    <div className={`card overflow-hidden transition-all duration-300 ${expanded ? 'ring-2 ring-green-200 shadow-lg' : 'hover:shadow-md'}`}>
+    <div className={`card overflow-visible transition-all duration-300 ${expanded ? 'relative z-50' : 'hover:shadow-md'}`}>
       {/* Header — always visible */}
       <button
         onClick={handleExpand}
@@ -70,10 +70,29 @@ export default function EmployeeCard({ employee, accentColor = 'indigo' }) {
         </div>
       </button>
 
-      {/* Expanded panel */}
+      {/* Expanded panel - positioned absolutely to overlay */}
       {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 space-y-4 animate-in slide-in-from-top">
-          {loadingPerf ? (
+        <div className="absolute left-0 right-0 top-full mt-1 border border-slate-200 bg-white rounded-lg shadow-xl p-4 space-y-4 animate-in slide-in-from-top z-50">
+          {hideFinancials ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-xs text-slate-500">Email</span>
+                <span className="text-xs font-medium text-slate-700">{m.email || 'N/A'}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-xs text-slate-500">Region</span>
+                <span className="text-xs font-medium text-slate-700">{m.region || 'N/A'}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-xs text-slate-500">State</span>
+                <span className="text-xs font-medium text-slate-700">{m.state || 'N/A'}</span>
+              </div>
+              <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-xs text-slate-500">Joined</span>
+                <span className="text-xs font-medium text-slate-700">{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A'}</span>
+              </div>
+            </div>
+          ) : loadingPerf ? (
             <div className="py-6 text-center text-sm text-slate-400">Loading performance data...</div>
           ) : perf ? (
             <>

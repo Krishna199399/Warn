@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const User = require('../src/models/User');
 const Order = require('../src/models/Order');
@@ -8,10 +9,19 @@ const Inventory = require('../src/models/Inventory');
 const Commission = require('../src/models/Commission');
 const Notification = require('../src/models/Notification');
 const Task = require('../src/models/Task');
-const PromotionRequest = require('../src/models/PromotionRequest');
 const Farmer = require('../src/models/Farmer');
 const StockLog = require('../src/models/StockLog');
 const StockTransfer = require('../src/models/StockTransfer');
+const Category = require('../src/models/Category');
+const BankDetails = require('../src/models/BankDetails');
+const Visit = require('../src/models/Visit');
+const PayoutBatch = require('../src/models/PayoutBatch');
+const PayoutRecord = require('../src/models/PayoutRecord');
+const SalaryPlan = require('../src/models/SalaryPlan');
+const UserRewardProgress = require('../src/models/UserRewardProgress');
+const UserSalaryStatus = require('../src/models/UserSalaryStatus');
+const IncomeConfig = require('../src/models/IncomeConfig');
+const PoolConfig = require('../src/models/PoolConfig');
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -25,17 +35,17 @@ async function cleanDatabase() {
     await mongoose.connect(MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
-    console.log('\n🗑️  Deleting all data...\n');
+    console.log('\n🗑️  Deleting all data (keeping Employee/User data)...\n');
 
-    // Delete all collections
-    const usersDeleted = await User.deleteMany({});
-    console.log(`   Users: ${usersDeleted.deletedCount} deleted`);
-
+    // Delete all collections EXCEPT Users
     const ordersDeleted = await Order.deleteMany({});
     console.log(`   Orders: ${ordersDeleted.deletedCount} deleted`);
 
     const productsDeleted = await Product.deleteMany({});
     console.log(`   Products: ${productsDeleted.deletedCount} deleted`);
+
+    const categoriesDeleted = await Category.deleteMany({});
+    console.log(`   Categories: ${categoriesDeleted.deletedCount} deleted`);
 
     const inventoryDeleted = await Inventory.deleteMany({});
     console.log(`   Inventory: ${inventoryDeleted.deletedCount} deleted`);
@@ -49,11 +59,11 @@ async function cleanDatabase() {
     const tasksDeleted = await Task.deleteMany({});
     console.log(`   Tasks: ${tasksDeleted.deletedCount} deleted`);
 
-    const promotionsDeleted = await PromotionRequest.deleteMany({});
-    console.log(`   Promotion Requests: ${promotionsDeleted.deletedCount} deleted`);
-
     const farmersDeleted = await Farmer.deleteMany({});
     console.log(`   Farmers: ${farmersDeleted.deletedCount} deleted`);
+
+    const visitsDeleted = await Visit.deleteMany({});
+    console.log(`   Visits: ${visitsDeleted.deletedCount} deleted`);
 
     const stockLogsDeleted = await StockLog.deleteMany({});
     console.log(`   Stock Logs: ${stockLogsDeleted.deletedCount} deleted`);
@@ -61,8 +71,40 @@ async function cleanDatabase() {
     const stockTransfersDeleted = await StockTransfer.deleteMany({});
     console.log(`   Stock Transfers: ${stockTransfersDeleted.deletedCount} deleted`);
 
+    const bankDetailsDeleted = await BankDetails.deleteMany({});
+    console.log(`   Bank Details: ${bankDetailsDeleted.deletedCount} deleted`);
+
+    const payoutBatchesDeleted = await PayoutBatch.deleteMany({});
+    console.log(`   Payout Batches: ${payoutBatchesDeleted.deletedCount} deleted`);
+
+    const payoutRecordsDeleted = await PayoutRecord.deleteMany({});
+    console.log(`   Payout Records: ${payoutRecordsDeleted.deletedCount} deleted`);
+
+    const userRewardProgressDeleted = await UserRewardProgress.deleteMany({});
+    console.log(`   User Reward Progress: ${userRewardProgressDeleted.deletedCount} deleted`);
+
+    const userSalaryStatusDeleted = await UserSalaryStatus.deleteMany({});
+    console.log(`   User Salary Status: ${userSalaryStatusDeleted.deletedCount} deleted`);
+
+    // Note: Income Config, Pool Config, and Salary Plans are preserved for system functionality
+
+    const userCount = await User.countDocuments({});
+    const incomeConfigCount = await IncomeConfig.countDocuments({});
+    const poolConfigCount = await PoolConfig.countDocuments({});
+    const salaryPlanCount = await SalaryPlan.countDocuments({});
+
+    console.log(`\n   ✓ Users/Employees: ${userCount} preserved`);
+    console.log(`   ✓ Income Config: ${incomeConfigCount} preserved`);
+    console.log(`   ✓ Pool Config: ${poolConfigCount} preserved`);
+    console.log(`   ✓ Salary Plans: ${salaryPlanCount} preserved`);
+
     console.log('\n✅ Database cleaned successfully!');
-    console.log('\n⚠️  All data has been deleted. You can now run seeders to populate fresh data.');
+    console.log('\n⚠️  All data has been deleted except:');
+    console.log('   • Employee/User data');
+    console.log('   • Income Config (commission structure)');
+    console.log('   • Pool Config (pool percentages)');
+    console.log('   • Salary Plans (salary levels and rewards)');
+    console.log('\n   You can now run seeders to populate fresh transactional data.');
 
   } catch (err) {
     console.error('❌ Error:', err);

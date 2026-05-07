@@ -1,152 +1,206 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useApi } from '@/hooks';
 import { ordersApi } from '../api/orders.api';
-import { PageHeader, Card } from '../components/ui';
-import { ShoppingBag, TrendingUp, DollarSign, Package, Download, Search, Filter, Calendar } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
 import { exportCSV } from '../utils/exportCSV';
-
-const STATUS_COLOR = {
-  DELIVERED:  'bg-green-50 text-green-700',
-  APPROVED:   'bg-blue-50 text-blue-600',
-  SHIPPED:    'bg-indigo-50 text-indigo-600',
-  PENDING:    'bg-amber-50 text-amber-600',
-  CANCELLED:  'bg-red-50 text-red-600',
-};
+import { ShoppingBag, TrendingUp, DollarSign, Package, Download, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
+import { LoadingGrid } from '@/components/ui/loading-grid';
+import { EmptyState } from '@/components/ui/empty-state';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 export default function MySalesPage() {
-  const [orders,  setOrders]  = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState('');
+  const { data: orders, loading, error } = useApi(() => ordersApi.getMy(), {
+    defaultValue: []
+  });
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dateRange, setDateRange] = useState('all');
 
-  useEffect(() => {
-    ordersApi.getMy()
-      .then(r => setOrders(r.data.data || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
   const totalRevenue = orders.filter(o => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0);
-  const delivered    = orders.filter(o => o.status === 'DELIVERED').length;
+  const delivered = orders.filter(o => o.status === 'DELIVERED').length;
+  const thisMonth = orders.filter(o => o.createdAt?.startsWith(new Date().toISOString().slice(0, 7))).length;
 
-  // Apply filters
   const filtered = orders.filter(o => {
     const matchStatus = statusFilter === 'ALL' || o.status === statusFilter;
     const matchSearch = !search || 
-      o.farmerId?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      o.farmerId?.name?.toLowerCase().includes(search.toLowerCase()) || 
+      o.customerName?.toLowerCase().includes(search.toLowerCase()) ||
       o.productId?.name?.toLowerCase().includes(search.toLowerCase());
     
     let matchDate = true;
     if (dateRange !== 'all' && o.createdAt) {
-      const orderDate = new Date(o.createdAt);
-      const now = new Date();
-      if (dateRange === 'month') {
-        matchDate = orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
-      } else if (dateRange === 'quarter') {
-        const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-        matchDate = orderDate >= quarterStart;
-      } else if (dateRange === 'year') {
-        matchDate = orderDate.getFullYear() === now.getFullYear();
-      }
+      const d = new Date(o.createdAt), now = new Date();
+      if (dateRange === 'month') matchDate = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      else if (dateRange === 'quarter') matchDate = d >= new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      else if (dateRange === 'year') matchDate = d.getFullYear() === now.getFullYear();
     }
-    
     return matchStatus && matchSearch && matchDate;
   });
 
+  if (loading) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="My Sales" description="Loading..." />
+        <LoadingGrid count={4} columns="lg:grid-cols-4" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="My Sales" />
+        <EmptyState
+          icon={ShoppingBag}
+          title="Failed to load sales"
+          description={error}
+        />
+      </div>
+    );
+  }
+
+  const handleExport = () => {
+    exportCSV(
+      filtered.map(o => ({
+        Date: o.createdAt?.slice(0, 10),
+        Customer: o.farmerId?.name || o.customerName || '—',
+        Product: o.productId?.name,
+        Qty: o.quantity,
+        Total: o.total,
+        Status: o.status
+      })),
+      'my_sales'
+    );
+  };
+
   return (
     <div className="space-y-5">
-      <PageHeader title="My Sales" subtitle={`${orders.length} total orders`}
-        actions={orders.length > 0 && (
-          <button onClick={() => exportCSV(filtered.map(o => ({
-            Date: o.createdAt?.slice(0,10) || 'N/A',
-            Farmer: o.farmerId?.name || 'N/A',
-            Product: o.productId?.name || 'N/A',
-            Quantity: o.quantity,
-            Total: o.total,
-            Status: o.status
-          })), 'my_sales')} className="btn-export">
-            <Download size={12} /> Export
-          </button>
-        )}
+      <PageHeader
+        title="My Sales"
+        description={`${orders.length} total orders`}
+        actions={
+          orders.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download size={13} className="mr-1.5" /> Export
+            </Button>
+          )
+        }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Orders',  value: orders.length,             icon: ShoppingBag, color: 'text-blue-600',   bg: 'bg-blue-50',   tooltip: 'Total number of orders' },
-          { label: 'Delivered',     value: delivered,                 icon: Package,     color: 'text-green-600',  bg: 'bg-green-50',  tooltip: 'Successfully delivered orders' },
-          { label: 'Total Revenue', value: formatCurrency(totalRevenue), icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50', raw: true, tooltip: 'Total sales revenue' },
-          { label: 'This Month',    value: orders.filter(o => o.createdAt?.startsWith(new Date().toISOString().slice(0,7))).length, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', tooltip: 'Orders this month' },
-        ].map(s => (
-          <Card key={s.label} title={s.tooltip} className="hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}><s.icon size={18} className={s.color} /></div>
-              <div>
-                <p className="text-xs text-slate-500">{s.label}</p>
-                <p className="text-lg font-bold text-slate-800">{s.value}</p>
-              </div>
-            </div>
-          </Card>
-        ))}
+        <StatCard
+          label="Total Orders"
+          value={orders.length}
+          icon={ShoppingBag}
+          format="number"
+        />
+        <StatCard
+          label="Delivered"
+          value={delivered}
+          icon={Package}
+          format="number"
+        />
+        <StatCard
+          label="Total Revenue"
+          value={totalRevenue}
+          icon={DollarSign}
+          format="currency"
+        />
+        <StatCard
+          label="This Month"
+          value={thisMonth}
+          icon={TrendingUp}
+          format="number"
+        />
       </div>
 
-      {/* Filters - Mobile optimized */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
-          {['ALL', 'PENDING', 'APPROVED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${statusFilter === s ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              {s}
-            </button>
-          ))}
-        </div>
-        <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}
-          className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 font-medium">
-          <option value="all">All Time</option>
-          <option value="month">This Month</option>
-          <option value="quarter">This Quarter</option>
-          <option value="year">This Year</option>
-        </select>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input-field pl-8 text-xs py-1.5 w-full" placeholder="Search farmer or product..."
-            value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="table-container">
-        <table className="w-full">
-          <thead>
-            <tr className="table-header">
-              {['Date','Farmer','Product','Qty','Total','Status'].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">Loading sales...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
-                {search || statusFilter !== 'ALL' || dateRange !== 'all' ? 'No sales match your filters.' : 'No sales yet.'}
-              </td></tr>
-            ) : filtered.map(o => (
-              <tr key={o._id} className="table-row">
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                </td>
-                <td className="px-4 py-3 text-sm font-medium text-slate-800">{o.farmerId?.name || '—'}</td>
-                <td className="px-4 py-3 text-sm text-slate-700">{o.productId?.name || o.productId?.code || '—'}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">{o.qty}</td>
-                <td className="px-4 py-3 text-sm font-semibold text-green-700">{formatCurrency(o.total)}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[o.status] || ''}`}>{o.status}</span>
-                </td>
-              </tr>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <TabsList className="flex-wrap h-auto">
+            {['ALL', 'PENDING', 'APPROVED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map(s => (
+              <TabsTrigger key={s} value={s} className="text-xs px-2.5">
+                {s === 'ALL' ? 'All' : s}
+              </TabsTrigger>
             ))}
-          </tbody>
-        </table>
+          </TabsList>
+        </Tabs>
+        <Select value={dateRange} onValueChange={setDateRange}>
+          <SelectTrigger className="w-36 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="quarter">This Quarter</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9 h-9"
+            placeholder="Search customer or product..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
       </div>
+
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {['Date', 'Customer', 'Product', 'Qty', 'Total', 'Status'].map(h => (
+                <TableHead key={h}>{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <EmptyState
+                    icon={ShoppingBag}
+                    title="No sales match your filters"
+                    description="Try adjusting your search or filters"
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map(o => (
+                <TableRow key={o._id}>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {o.createdAt
+                      ? new Date(o.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="font-medium">{o.farmerId?.name || o.customerName || '—'}</TableCell>
+                  <TableCell className="text-muted-foreground">{o.productId?.name || '—'}</TableCell>
+                  <TableCell className="font-semibold">{o.quantity || '—'}</TableCell>
+                  <TableCell className="font-semibold text-primary">
+                    {formatCurrency(o.total)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={o.status} type="order" />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

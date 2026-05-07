@@ -115,135 +115,6 @@ const notifyCommission = async (commission, user) => {
   });
 };
 
-// Promotion request notifications
-const notifyPromotionRequest = async (request, user) => {
-  // Notify the user
-  await createNotification(user._id, {
-    type: 'PROMOTION',
-    title: 'Promotion Request',
-    message: `Your promotion request to ${request.nextRole.replace(/_/g, ' ')} has been submitted`,
-    data: { requestId: request._id, nextRole: request.nextRole }
-  });
-
-  // Notify parent (DO Manager)
-  if (request.parentId) {
-    await createNotification(request.parentId, {
-      type: 'PROMOTION',
-      title: 'Promotion Request',
-      message: `${user.name} requested promotion to ${request.nextRole.replace(/_/g, ' ')}`,
-      data: { requestId: request._id, userId: user._id, nextRole: request.nextRole }
-    });
-  }
-};
-
-// Promotion approved by parent
-const notifyPromotionParentApproved = async (request, user) => {
-  // Notify the user
-  await createNotification(user._id, {
-    type: 'PROMOTION',
-    title: 'Promotion Update',
-    message: `Your manager approved your promotion request. Awaiting admin approval.`,
-    data: { requestId: request._id }
-  });
-
-  // Notify all admins
-  await notifyAdmins({
-    type: 'PROMOTION',
-    title: 'Promotion Approval Needed',
-    message: `${user.name} promotion to ${request.nextRole.replace(/_/g, ' ')} needs admin approval`,
-    data: { requestId: request._id, userId: user._id, nextRole: request.nextRole }
-  });
-};
-
-// Promotion rejected
-const notifyPromotionRejected = async (request, user, rejectedBy) => {
-  await createNotification(user._id, {
-    type: 'PROMOTION',
-    title: 'Promotion Rejected',
-    message: `Your promotion request was rejected by ${rejectedBy}. Reason: ${request.rejectionReason || 'Not specified'}`,
-    data: { requestId: request._id }
-  });
-};
-
-// Promotion approved by admin (final)
-const notifyPromotionApproved = async (request, user) => {
-  await createNotification(user._id, {
-    type: 'PROMOTION',
-    title: 'Promotion Approved! 🎉',
-    message: `Congratulations! You've been promoted to ${user.role.replace(/_/g, ' ')}`,
-    data: { requestId: request._id, newRole: user.role }
-  });
-
-  // Notify hierarchy about the promotion
-  if (user.parentId) {
-    await notifyHierarchy(user._id, {
-      type: 'PROMOTION',
-      title: 'Team Promotion',
-      message: `${user.name} has been promoted to ${user.role.replace(/_/g, ' ')}`,
-      data: { userId: user._id, newRole: user.role }
-    });
-  }
-};
-
-// Task assigned notification
-const notifyTaskAssigned = async (task, assignee) => {
-  await createNotification(assignee._id, {
-    type: 'TASK',
-    title: 'New Task',
-    message: `New task assigned: ${task.title}`,
-    data: { taskId: task._id, priority: task.priority, due: task.due }
-  });
-};
-
-// Task due soon notification
-const notifyTaskDueSoon = async (task, assignee) => {
-  await createNotification(assignee._id, {
-    type: 'TASK',
-    title: 'Task Due Soon',
-    message: `Task "${task.title}" is due soon`,
-    data: { taskId: task._id, due: task.due }
-  });
-};
-
-// Milestone achievement notification
-const notifyMilestone = async (userId, milestone) => {
-  await createNotification(userId, {
-    type: 'MILESTONE',
-    title: 'Milestone',
-    message: milestone.message,
-    data: milestone.data
-  });
-};
-
-// User approval notifications
-const notifyUserApproved = async (user) => {
-  await createNotification(user._id, {
-    type: 'SYSTEM',
-    title: 'Account Approved',
-    message: `Welcome to WANS! Your account has been approved. You can now access the system.`,
-    data: { userId: user._id }
-  });
-};
-
-const notifyUserRejected = async (user, reason) => {
-  await createNotification(user._id, {
-    type: 'SYSTEM',
-    title: 'Account Rejected',
-    message: `Your account registration was rejected. Reason: ${reason || 'Not specified'}`,
-    data: { userId: user._id }
-  });
-};
-
-// New user registration notification (to admins)
-const notifyNewUserRegistration = async (user) => {
-  await notifyAdmins({
-    type: 'SYSTEM',
-    title: 'New User Registration',
-    message: `${user.name} (${user.role}) registered and needs approval`,
-    data: { userId: user._id, role: user.role, email: user.email }
-  });
-};
-
 // Welcome notification for new users
 const notifyWelcome = async (userId) => {
   await createNotification(userId, {
@@ -251,6 +122,66 @@ const notifyWelcome = async (userId) => {
     title: 'Welcome',
     message: 'Welcome to WANS — your agri network dashboard',
     data: null
+  });
+};
+
+// Task assigned notification
+const notifyTaskAssigned = async (task, assignee) => {
+  await createNotification(assignee._id, {
+    type: 'TASK',
+    title: 'New Task Assigned',
+    message: `You have been assigned: ${task.title}`,
+    data: { taskId: task._id, title: task.title, dueDate: task.dueDate }
+  });
+};
+
+// User registration notification (to admins)
+const notifyNewUserRegistration = async (user) => {
+  await notifyAdmins({
+    type: 'SYSTEM',
+    title: 'New User Registration',
+    message: `${user.name} (${user.role}) has registered and is pending approval`,
+    data: { userId: user._id, name: user.name, role: user.role }
+  });
+};
+
+// User approved notification
+const notifyUserApproved = async (user) => {
+  await createNotification(user._id, {
+    type: 'SYSTEM',
+    title: 'Account Approved',
+    message: 'Your account has been approved. You can now access all features.',
+    data: null
+  });
+};
+
+// User rejected notification
+const notifyUserRejected = async (user, reason) => {
+  await createNotification(user._id, {
+    type: 'SYSTEM',
+    title: 'Account Rejected',
+    message: reason || 'Your account registration has been rejected.',
+    data: null
+  });
+};
+
+// KYC approved notification
+const notifyKYCApproved = async (user) => {
+  await createNotification(user._id, {
+    type: 'SYSTEM',
+    title: 'KYC Verified',
+    message: 'Your KYC has been approved. You can now receive payments.',
+    data: null
+  });
+};
+
+// KYC rejected notification
+const notifyKYCRejected = async (user, reason) => {
+  await createNotification(user._id, {
+    type: 'SYSTEM',
+    title: 'KYC Rejected',
+    message: `Your KYC was rejected: ${reason}. Please update and resubmit.`,
+    data: { reason }
   });
 };
 
@@ -264,15 +195,11 @@ module.exports = {
   // Specific triggers
   notifyNewOrder,
   notifyCommission,
-  notifyPromotionRequest,
-  notifyPromotionParentApproved,
-  notifyPromotionRejected,
-  notifyPromotionApproved,
   notifyTaskAssigned,
-  notifyTaskDueSoon,
-  notifyMilestone,
+  notifyNewUserRegistration,
   notifyUserApproved,
   notifyUserRejected,
-  notifyNewUserRegistration,
   notifyWelcome,
+  notifyKYCApproved,
+  notifyKYCRejected,
 };

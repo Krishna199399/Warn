@@ -3,8 +3,10 @@ const router   = express.Router();
 const multer   = require('multer');
 const path     = require('path');
 const fs       = require('fs');
-const { protect }   = require('../middleware/auth.middleware');
+const { protect, optionalAuth } = require('../middleware/auth.middleware');
 const { adminOnly } = require('../middleware/role.middleware');
+const validate = require('../middleware/validate.middleware');
+const { createProductSchema, updateProductSchema } = require('../schemas/product.schema');
 const ctrl          = require('../controllers/product.controller');
 
 // ─── Upload directory ─────────────────────────────────────────────────────────
@@ -39,12 +41,14 @@ function uploadMiddleware(req, res, next) {
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-// GET routes are PUBLIC — landing page and unauthenticated users need product data
-router.get   ('/',     ctrl.getAllProducts);
-router.get   ('/:id',  ctrl.getProduct);
+// GET routes use optionalAuth so admin callers get full data; others get public fields only
+router.get   ('/',     optionalAuth, ctrl.getAllProducts);
+router.get   ('/:id',  optionalAuth, ctrl.getProduct);
+router.get   ('/:id/stock-check', protect, adminOnly, ctrl.checkProductStock);
 // Write routes require auth + admin role
-router.post  ('/',     protect, adminOnly, uploadMiddleware, ctrl.createProduct);
-router.put   ('/:id',  protect, adminOnly, uploadMiddleware, ctrl.updateProduct);
+// 🔒 SECURITY: Validation applied to product creation/updates
+router.post  ('/',     protect, adminOnly, uploadMiddleware, validate(createProductSchema), ctrl.createProduct);
+router.put   ('/:id',  protect, adminOnly, uploadMiddleware, validate(updateProductSchema), ctrl.updateProduct);
 router.delete('/:id',  protect, adminOnly, ctrl.deleteProduct);
 
 module.exports = router;

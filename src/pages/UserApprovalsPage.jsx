@@ -1,275 +1,418 @@
 import React, { useEffect, useState } from 'react';
 import { usersApi } from '../api/users.api';
-import { PageHeader, Card, SkeletonPage } from '../components/ui';
-import { UserCheck, UserX, Users, MapPin, Mail, Phone, Calendar, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
+import {
+  UserCheck, UserX, Users, MapPin, Mail, Phone, Calendar, AlertCircle, CheckCircle, Briefcase,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { PageHeader, LoadingGrid, EmptyState } from '@/components/ui';
+import { useApi } from '../hooks/useApi';
+import { toast } from 'sonner';
+
+const ROLE_COLOR = {
+  ADVISOR:       'bg-green-100 text-green-700',
+  DO_MANAGER:    'bg-amber-100 text-amber-700',
+  AREA_MANAGER:  'bg-blue-100 text-blue-700',
+  ZONAL_MANAGER: 'bg-indigo-100 text-indigo-700',
+  STATE_HEAD:    'bg-purple-100 text-purple-700',
+  WHOLESALE:     'bg-orange-100 text-orange-700',
+  MINI_STOCK:    'bg-rose-100 text-rose-700',
+  CUSTOMER:      'bg-gray-100 text-gray-700',
+};
+
+// Employee roles that require approval and hierarchy
+const EMPLOYEE_ROLES = ['STATE_HEAD', 'ZONAL_MANAGER', 'AREA_MANAGER', 'DO_MANAGER', 'ADVISOR'];
+
+// Role hierarchy mapping (child -> parent)
+const ROLE_HIERARCHY = {
+  'ADVISOR': 'DO_MANAGER',
+  'DO_MANAGER': 'AREA_MANAGER',
+  'AREA_MANAGER': 'ZONAL_MANAGER',
+  'ZONAL_MANAGER': 'STATE_HEAD',
+  'STATE_HEAD': null, // Top level, no parent
+};
+
+// Helper to check if role is employee role
+const isEmployeeRole = (role) => EMPLOYEE_ROLES.includes(role);
+
+// Helper to get parent role for a given role
+const getParentRole = (role) => ROLE_HIERARCHY[role] || null;
 
 export default function UserApprovalsPage() {
-  const [pending, setPending] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: pending, loading, error, refetch } = useApi(() => usersApi.getPending(), {
+    transform: (res) => res.data.data || [],
+    defaultValue: []
+  });
+  
   const [processing, setProcessing] = useState(null);
-  const [doManagers, setDoManagers] = useState([]);
   const [selectedParent, setSelectedParent] = useState({});
+  const [parentOptions, setParentOptions] = useState({});
+  const [loadingParents, setLoadingParents] = useState({});
 
-  const fetchPending = async () => {
-    try {
-      const res = await usersApi.getPending();
-      setPending(res.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch pending users:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Reject dialog state
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
-  const fetchDoManagers = async () => {
-    try {
-      const res = await usersApi.getAll({ role: 'DO_MANAGER', status: 'APPROVED' });
-      setDoManagers(res.data.data || []);
-    } catch (err) {
-      console.error('Failed to fetch DO Managers:', err);
-    }
-  };
-
+  // Fetch parent options for each employee role user
   useEffect(() => {
-    fetchPending();
-    fetchDoManagers();
-  }, []);
+    if (!pending || pending.length === 0) return;
 
-  const handleAssignParent = async (userId, parentId) => {
-    if (!parentId) {
-      alert('Please select a DO Manager');
-      return;
-    }
-    
-    setProcessing(userId);
-    try {
-      await usersApi.assignParent(userId, parentId);
-      // Update local state
-      setPending(prev => prev.map(u => {
-        if (u._id === userId) {
-          const parent = doManagers.find(dm => dm._id === parentId);
-          return { ...u, parentId: parent };
+    const fetchParentOptions = async () => {
+      for (const user of pending) {
+        // Only fetch for employee roles that need parents
+        if (isEmployeeRole(user.role) && user.role !== 'STATE_HEAD' && !user.parentId) {
+          const parentRole = getParentRole(user.role);
+          if (parentRole && !parentOptions[user._id]) {
+            setLoadingParents(prev => ({ ...prev, [user._id]: true }));
+            try {
+              const response = await usersApi.getAll({ 
+                role: parentRole, 
+                status: 'APPROVED' 
+              });
+              const parents = response.data.data || [];
+              setParentOptions(prev => ({ ...prev, [user._id]: parents }));
+            } catch (err) {
+              console.error(`Failed to fetch ${parentRole} options:`, err);
+              toast.error(`Failed to load ${parentRole} options`);
+            } finally {
+              setLoadingParents(prev => ({ ...prev, [user._id]: false }));
+            }
+          }
         }
-        return u;
-      }));
-      alert('✅ Parent assigned successfully!');
-    } catch (err) {
-      alert('Failed to assign parent: ' + (err.response?.data?.error || err.message));
-    } finally {
-      setProcessing(null);
-    }
-  };
+      }
+    };
+
+    fetchParentOptions();
+  }, [pending]);
 
   const handleApprove = async (userId) => {
     const user = pending.find(u => u._id === userId);
-    
-    // Check if advisor has parent assigned
-    if (user?.role === 'ADVISOR' && !user.parentId) {
-      alert('⚠️ Please assign a DO Manager before approving this advisor');
-      return;
-    }
-    
-    if (!confirm('Approve this user?')) return;
+    if (!user) return;
+
     setProcessing(userId);
     try {
-      await usersApi.approve(userId);
-      setPending(prev => prev.filter(u => u._id !== userId));
-      alert('✅ User approved successfully!');
+      // Check if this is an employee role
+      if (isEmployeeRole(user.role)) {
+        // STATE_HEAD doesn't need parent
+        if (user.role === 'STATE_HEAD') {
+          await usersApi.approveEmployeeRegistration(userId);
+          toast.success(`${user.name} approved as State Head!`);
+        } else {
+          // Other employee roles need parent assignment
+          if (!user.parentId && !selectedParent[userId]) {
+            toast.error('Please assign a parent before approving');
+            setProcessing(null);
+            return;
+          }
+
+          const parentId = user.parentId || selectedParent[userId];
+          await usersApi.approveEmployeeRegistration(userId, parentId);
+          toast.success(`${user.name} approved successfully!`);
+        }
+      } else {
+        // Legacy approval for WHOLESALE, MINI_STOCK, CUSTOMER
+        await usersApi.approve(userId);
+        toast.success(`${user.name} approved successfully!`);
+      }
+      
+      await refetch();
     } catch (err) {
-      alert('Failed to approve user: ' + (err.response?.data?.error || err.message));
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to approve user');
     } finally {
       setProcessing(null);
     }
   };
 
-  const handleReject = async (userId) => {
-    const reason = prompt('Reason for rejection (optional):');
-    if (reason === null) return; // User cancelled
-    
-    setProcessing(userId);
+  const handleRejectConfirm = async () => {
+    if (!rejectTarget) return;
+    setRejecting(true);
     try {
-      await usersApi.reject(userId, reason);
-      setPending(prev => prev.filter(u => u._id !== userId));
-      alert('User rejected');
+      // Check if this is an employee role
+      if (isEmployeeRole(rejectTarget.role)) {
+        await usersApi.rejectEmployeeRegistration(rejectTarget._id, rejectReason);
+      } else {
+        await usersApi.reject(rejectTarget._id, rejectReason);
+      }
+      
+      toast.success(`${rejectTarget.name} rejected`);
+      await refetch();
+      setRejectTarget(null);
+      setRejectReason('');
     } catch (err) {
-      alert('Failed to reject user: ' + (err.response?.data?.error || err.message));
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to reject user');
     } finally {
-      setProcessing(null);
+      setRejecting(false);
     }
   };
 
-  if (loading) return <SkeletonPage />;
+  if (loading) return <LoadingGrid count={3} type="card" />;
+
+  // Show error state if API call failed
+  if (error) {
+    return (
+      <div className="space-y-5">
+        <PageHeader
+          title="User Approvals"
+          description="Review and approve new user registrations"
+        />
+        <Card className="p-8">
+          <div className="text-center space-y-3">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+            <h3 className="text-lg font-semibold">Failed to Load Pending Users</h3>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button onClick={refetch} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      <PageHeader 
-        title="User Approvals" 
-        subtitle={`${pending.length} pending approval${pending.length !== 1 ? 's' : ''}`}
+      <PageHeader
+        title="User Approvals"
+        description="Review and approve new user registrations"
+        actions={
+          <Badge variant={(pending?.length || 0) > 0 ? 'destructive' : 'secondary'} className="text-sm px-3 py-1">
+            {pending?.length || 0} pending
+          </Badge>
+        }
       />
 
-      {/* Summary Card */}
-      <Card>
-        <div className="p-4 flex items-center gap-3">
-          <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
-            <AlertCircle size={24} className="text-amber-600" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Pending Registrations</p>
-            <p className="text-xs text-slate-500">Review and approve new user registrations</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Pending Users List */}
-      {pending.length === 0 ? (
-        <Card>
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={32} className="text-green-600" />
-            </div>
-            <p className="text-lg font-semibold text-slate-800 mb-2">All caught up!</p>
-            <p className="text-sm text-slate-500">No pending user approvals at the moment</p>
-          </div>
-        </Card>
+      {(pending?.length || 0) === 0 ? (
+        <EmptyState
+          icon={CheckCircle}
+          title="All caught up!"
+          description="No pending user approvals at the moment"
+        />
       ) : (
         <div className="grid gap-4">
-          {pending.map(user => (
-            <Card key={user._id}>
-              <div className="p-5">
-                <div className="flex items-start gap-4">
-                  {/* Avatar */}
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0 shadow-md">
-                    {user.avatar || user.name?.slice(0, 2).toUpperCase()}
-                  </div>
+          {(pending || []).map(user => {
+            const isEmployee = isEmployeeRole(user.role);
+            const parentRole = getParentRole(user.role);
+            const needsParent = isEmployee && user.role !== 'STATE_HEAD' && !user.parentId;
+            const parents = parentOptions[user._id] || [];
+            const loadingParentOptions = loadingParents[user._id];
 
-                  {/* User Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-800">{user.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
-                            {user.role?.replace(/_/g, ' ')}
-                          </span>
-                          {user.advisorCode && (
-                            <span className="text-xs font-mono text-blue-600 font-semibold">
-                              {user.advisorCode}
+            return (
+              <Card key={user._id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="flex flex-col md:flex-row md:items-start gap-5 p-5">
+                    {/* Avatar */}
+                    <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground text-lg font-bold flex-shrink-0">
+                      {user.avatar || user.name?.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-4">
+                      {/* Name + role + actions row */}
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div>
+                          <h3 className="text-lg font-bold">{user.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLOR[user.role] || 'bg-slate-100 text-slate-700'}`}>
+                              {user.role?.replace(/_/g, ' ')}
                             </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(user._id)}
-                          disabled={processing === user._id}
-                          className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                        >
-                          <UserCheck size={14} />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(user._id)}
-                          disabled={processing === user._id}
-                          className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                        >
-                          <UserX size={14} />
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Contact Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      {user.email && (
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Mail size={14} className="text-slate-400" />
-                          <span>{user.email}</span>
-                        </div>
-                      )}
-                      {user.phone && (
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Phone size={14} className="text-slate-400" />
-                          <span>{user.phone}</span>
-                        </div>
-                      )}
-                      {user.region && (
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <MapPin size={14} className="text-slate-400" />
-                          <span>{user.region}{user.state ? `, ${user.state}` : ''}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <Calendar size={14} className="text-slate-400" />
-                        <span>Registered {formatDate(user.createdAt)}</span>
-                      </div>
-                    </div>
-
-                    {/* Parent Assignment - Show for Advisors without parent */}
-                    {!user.parentId && user.role === 'ADVISOR' && (
-                      <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <Users size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-blue-800 mb-2">Assign DO Manager</p>
-                            <div className="flex gap-2">
-                              <select
-                                value={selectedParent[user._id] || ''}
-                                onChange={(e) => setSelectedParent(prev => ({ ...prev, [user._id]: e.target.value }))}
-                                className="flex-1 text-sm px-3 py-2 border border-blue-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
-                              >
-                                <option value="">Select DO Manager...</option>
-                                {doManagers.map(dm => (
-                                  <option key={dm._id} value={dm._id}>
-                                    {dm.name} - {dm.region || 'No Region'} ({dm.advisorCode || dm.phone})
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                onClick={() => handleAssignParent(user._id, selectedParent[user._id])}
-                                disabled={!selectedParent[user._id] || processing === user._id}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                Assign
-                              </button>
-                            </div>
-                            <p className="text-xs text-blue-600 mt-2">
-                              ⚠️ Must assign a DO Manager before approval
-                            </p>
+                            {isEmployee && (
+                              <Badge variant="outline" className="text-xs">
+                                <Briefcase className="w-3 h-3 mr-1" />
+                                Employee
+                              </Badge>
+                            )}
+                            {user.advisorCode && (
+                              <span className="text-xs font-mono text-primary font-semibold">
+                                {user.advisorCode}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    )}
 
-                    {/* Parent Info */}
-                    {user.parentId && (
-                      <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-xs text-green-600 mb-1 font-medium">✓ Assigned Parent</p>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(user._id)}
+                            disabled={processing === user._id || (needsParent && !selectedParent[user._id])}
+                            title={
+                              needsParent && !selectedParent[user._id]
+                                ? `Select a ${parentRole?.replace(/_/g, ' ')} first` 
+                                : 'Approve user'
+                            }
+                          >
+                            <UserCheck className="mr-1.5 w-4 h-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setRejectTarget(user)}
+                            disabled={processing === user._id}
+                          >
+                            <UserX className="mr-1.5 w-4 h-4" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Contact details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        {user.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-3.5 h-3.5" /> {user.email}
+                          </div>
+                        )}
+                        {user.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-3.5 h-3.5" /> {user.phone}
+                          </div>
+                        )}
+                        {user.region && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {user.region}{user.state ? `, ${user.state}` : ''}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
-                          <Users size={14} className="text-green-600" />
-                          <span className="text-sm font-medium text-green-800">
-                            {user.parentId.name}
+                          <Calendar className="w-3.5 h-3.5" /> Registered {formatDate(user.createdAt)}
+                        </div>
+                      </div>
+
+                      {/* Parent Assignment - Required for employee roles (except STATE_HEAD) */}
+                      {needsParent && !selectedParent[user._id] && (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
+                          <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Assign a {parentRole?.replace(/_/g, ' ')} before approving
+                          </p>
+                          <div className="flex gap-2 items-center">
+                            <Select
+                              value={selectedParent[user._id] || ''}
+                              onValueChange={(v) => setSelectedParent(prev => ({ ...prev, [user._id]: v }))}
+                              disabled={loadingParentOptions}
+                            >
+                              <SelectTrigger className="flex-1 h-9 text-sm">
+                                <SelectValue placeholder={loadingParentOptions ? 'Loading...' : `Select ${parentRole?.replace(/_/g, ' ')}...`} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {parents.length === 0 ? (
+                                  <div className="p-2 text-xs text-muted-foreground text-center">
+                                    No approved {parentRole?.replace(/_/g, ' ')} found
+                                  </div>
+                                ) : (
+                                  parents.map(parent => (
+                                    <SelectItem key={parent._id} value={parent._id}>
+                                      {parent.name} {parent.employeeCode && `(${parent.employeeCode})`} — {parent.region || 'No Region'}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {parents.length === 0 && !loadingParentOptions && (
+                            <p className="text-xs text-amber-700">
+                              ⚠️ No approved {parentRole?.replace(/_/g, ' ')} available. Please approve a {parentRole?.replace(/_/g, ' ')} first.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Show selected parent confirmation */}
+                      {selectedParent[user._id] && (
+                        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-300 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-700" />
+                          <span className="text-sm font-medium text-green-900">
+                            Selected: {parents.find(p => p._id === selectedParent[user._id])?.name}
+                            {parents.find(p => p._id === selectedParent[user._id])?.employeeCode && 
+                              ` (${parents.find(p => p._id === selectedParent[user._id])?.employeeCode})`
+                            }
                           </span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-200 text-green-700">
-                            {user.parentId.role?.replace(/_/g, ' ')}
-                          </span>
-                          {user.parentId.region && (
-                            <span className="text-xs text-green-600">
-                              • {user.parentId.region}
+                        </div>
+                      )}
+
+                      {/* Parent assigned */}
+                      {user.parentId && (
+                        <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                          <Users className="w-4 h-4 text-primary" />
+                          {typeof user.parentId === 'object' ? (
+                            <>
+                              <span className="text-sm font-medium text-primary">{user.parentId.name}</span>
+                              {user.parentId.employeeCode && (
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  ({user.parentId.employeeCode})
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {user.parentId.role?.replace(/_/g, ' ')} · {user.parentId.region || 'No Region'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium text-primary">
+                              Parent Assigned (ID: {user.parentId})
                             </span>
                           )}
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {/* STATE_HEAD info - no parent needed */}
+                      {user.role === 'STATE_HEAD' && (
+                        <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                          <Briefcase className="w-4 h-4 text-purple-600" />
+                          <span className="text-sm font-medium text-purple-900">
+                            Top-level position - No parent assignment required
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Reject Dialog */}
+      <Dialog open={!!rejectTarget} onOpenChange={() => { setRejectTarget(null); setRejectReason(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject User</DialogTitle>
+            <DialogDescription>
+              Rejecting <strong>{rejectTarget?.name}</strong>. Optionally provide a reason.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason (optional)</Label>
+            <Textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Enter reason for rejection..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRejectConfirm} disabled={rejecting}>
+              {rejecting ? 'Rejecting...' : 'Reject User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

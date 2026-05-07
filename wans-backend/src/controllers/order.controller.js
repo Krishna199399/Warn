@@ -4,14 +4,17 @@ const User       = require('../models/User');
 const Inventory  = require('../models/Inventory');
 const Product    = require('../models/Product');
 const StockLog   = require('../models/StockLog');
+const Farmer     = require('../models/Farmer');
+const Visit      = require('../models/Visit');
 const mongoose   = require('mongoose');
 const { buildHierarchySnapshot, calculateCommissions, getSubtreeIds } = require('../services/hierarchy.service');
 const { notifyNewOrder, notifyCommission } = require('../services/notification.service');
+const { checkAndUpdateRewards, checkAndUpgradeLevel } = require('./salary.controller');
 
 // POST /api/orders  — create order (NO stock update until delivery)
 const createOrder = async (req, res, next) => {
   try {
-    const { buyerType, productId, quantity, advisorCode, farmerId, region } = req.body;
+    const { buyerType, productId, quantity, advisorCode, farmerId, region, deliveryAddress } = req.body;
 
     // Validate required fields
     if (!buyerType || !productId || !quantity) {
@@ -27,13 +30,70 @@ const createOrder = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Product not found' });
     }
 
-    const price = Number(product.price) || 0;
-    if (price <= 0) {
-      return res.status(400).json({ success: false, error: 'Product has no valid price' });
+    // Determine price based on buyer type
+    let price;
+    if (buyerType === 'WHOLESALE') {
+      price = Number(product.wholesalePrice) || 0;
+      if (price <= 0) {
+        return res.status(400).json({ success: false, error: 'Product has no wholesale price set' });
+      }
+    } else if (buyerType === 'MINI_STOCK') {
+      price = Number(product.miniStockPrice) || 0;
+      if (price <= 0) {
+        return res.status(400).json({ success: false, error: 'Product has no mini-stock price set' });
+      }
+    } else {
+      // Customer orders use MRP
+      price = Number(product.price) || 0;
+      if (price <= 0) {
+        return res.status(400).json({ success: false, error: 'Product has no valid price' });
+      }
     }
 
     const qty   = Number(quantity);
-    const total = price * qty;
+    const subtotal = price * qty;
+
+    // Use product's tax rate (not user's tax config)
+    const taxRate = Number(product.taxRate) || 18;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const total = subtotal + taxAmount;
+
+    // Freeze commission pool values at time of order
+    const productSnapshot = {
+      rpPoints: Number(product.rp) || 0,
+      ivPoints: Number(product.iv) || 0,
+      svPoints: Number(product.sv) || 0,
+      rvPoints: Number(product.rv) || 0,
+      mrp: Number(product.mrp) || 0,
+      wholesalePrice: Number(product.wholesalePrice) || 0,
+      miniStockPrice: Number(product.miniStockPrice) || 0,
+      wholesaleMargin: Number(product.wholesaleMargin) || 0,
+      miniStockMargin: Number(product.miniStockMargin) || 0,
+    };
+
+    // Calculate buyer commission based on role
+    let buyerCommission = {
+      type: 'NONE',
+      amountPerUnit: 0,
+      totalAmount: 0,
+      recorded: false,
+    };
+
+    if (buyerType === 'WHOLESALE' && productSnapshot.wholesaleMargin > 0) {
+      buyerCommission = {
+        type: 'WHOLESALE_MARGIN',
+        amountPerUnit: productSnapshot.wholesaleMargin,
+        totalAmount: productSnapshot.wholesaleMargin * qty,
+        recorded: false,
+      };
+    } else if (buyerType === 'MINI_STOCK' && productSnapshot.miniStockMargin > 0) {
+      buyerCommission = {
+        type: 'MINISTOCK_MARGIN',
+        amountPerUnit: productSnapshot.miniStockMargin,
+        totalAmount: productSnapshot.miniStockMargin * qty,
+        recorded: false,
+      };
+    }
 
     // Determine seller based on buyer type
     let sellerId, sellerType, advisorId = null, hierarchySnapshot = null;
@@ -59,12 +119,31 @@ const createOrder = async (req, res, next) => {
         return res.status(403).json({ success: false, error: 'Only Mini Stock can place orders to Wholesale' });
       }
       
-      const wholesale = await User.findOne({ role: 'WHOLESALE', status: 'APPROVED' }).lean();
-      if (!wholesale) {
-        return res.status(404).json({ success: false, error: 'No approved Wholesale found. Please contact your manager.' });
+      // If sellerId is provided, use that specific wholesale seller
+      if (req.body.sellerId) {
+        const wholesale = await User.findOne({ 
+          _id: req.body.sellerId, 
+          role: 'WHOLESALE', 
+          status: 'APPROVED' 
+        }).lean();
+        
+        if (!wholesale) {
+          return res.status(404).json({ 
+            success: false, 
+            error: 'Selected Wholesale seller not found or not approved' 
+          });
+        }
+        
+        sellerId = wholesale._id;
+      } else {
+        // Fallback: find any approved wholesale seller (for backward compatibility)
+        const wholesale = await User.findOne({ role: 'WHOLESALE', status: 'APPROVED' }).lean();
+        if (!wholesale) {
+          return res.status(404).json({ success: false, error: 'No approved Wholesale found. Please contact your manager.' });
+        }
+        sellerId = wholesale._id;
       }
       
-      sellerId   = wholesale._id;
       sellerType = 'WHOLESALE';
       
     } else if (buyerType === 'CUSTOMER') {
@@ -79,7 +158,7 @@ const createOrder = async (req, res, next) => {
       
       // Validate advisor code
       const advisor = await User.findOne({ 
-        advisorCode: advisorCode.toUpperCase(),
+        employeeCode: advisorCode.toUpperCase(),
         status: 'APPROVED'
       }).lean();
       
@@ -109,11 +188,17 @@ const createOrder = async (req, res, next) => {
       productId,
       quantity:  qty,
       price,
+      subtotal,
+      taxRate,
+      taxAmount,
       total,
       advisorId,
       farmerId:  farmerId || null,
       region:    region   || '',
+      deliveryAddress: deliveryAddress || null,
       hierarchySnapshot,
+      productSnapshot,
+      buyerCommission,
       status:        'PENDING',
       paymentStatus: initialPaymentStatus,
       source:        'WEBSITE',
@@ -122,7 +207,7 @@ const createOrder = async (req, res, next) => {
     const populatedOrder = await Order.findById(order._id)
       .populate('productId', 'name category price')
       .populate('sellerId',  'name role')
-      .populate('advisorId', 'name advisorCode')
+      .populate('advisorId', 'name employeeCode')
       .populate('farmerId',  'name village');
 
     res.status(201).json({ 
@@ -229,9 +314,12 @@ const getMiniOrders = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Access denied. Mini Stock only.' });
     }
 
-    // Filter: buyerId = current user (orders they placed)
+    // Return ALL orders for Mini Stock: both as buyer (purchases) and as seller (POS sales)
     const orders = await Order.find({
-      buyerId: req.user._id
+      $or: [
+        { buyerId: req.user._id },   // Orders where they are buyer (purchases from Wholesale)
+        { sellerId: req.user._id }   // Orders where they are seller (POS sales to customers)
+      ]
     })
       .populate('buyerId', 'name email role')
       .populate('sellerId', 'name role')
@@ -251,10 +339,23 @@ const getOrders = async (req, res, next) => {
       const subtreeIds = await getSubtreeIds(req.user._id);
       filter = { advisorId: { $in: subtreeIds } };
     }
+    
+    // Add date filtering support
+    if (req.query.startDate) {
+      filter.createdAt = { ...filter.createdAt, $gte: new Date(req.query.startDate) };
+    }
+    if (req.query.endDate) {
+      filter.createdAt = { ...filter.createdAt, $lte: new Date(req.query.endDate) };
+    }
+    
+    // Add limit support
+    const limit = req.query.limit ? parseInt(req.query.limit) : 0;
+    
     const orders = await Order.find(filter)
-      .populate('advisorId', 'name advisorCode')
+      .populate('advisorId', 'name employeeCode')
       .populate('productId', 'name')
       .sort({ createdAt: -1 })
+      .limit(limit)
       .lean();
     res.json({ success: true, data: orders });
   } catch (err) { next(err); }
@@ -264,7 +365,7 @@ const getOrders = async (req, res, next) => {
 const getOrder = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate('advisorId', 'name advisorCode')
+      .populate('advisorId', 'name employeeCode')
       .populate('productId', 'name category price')
       .populate('farmerId', 'name village')
       .populate('hierarchySnapshot.advisorId', 'name')
@@ -500,13 +601,48 @@ const confirmDelivery = async (req, res, next) => {
         const commissionData = await calculateCommissions(order, order.hierarchySnapshot);
         if (commissionData.length > 0) {
           const saved = await Commission.insertMany(commissionData, sessionOpts);
-          // Notify asynchronously — don't block the response
+          
+          // Update reward progress for users who received RV commissions
+          // This runs asynchronously to avoid blocking the transaction
           setImmediate(async () => {
+            // Track unique users who received RV commissions
+            const rvUsers = new Set();
+            
             for (const comm of saved) {
               try {
+                // Notify commission
                 const recipient = await User.findById(comm.userId);
                 if (recipient) await notifyCommission(comm, recipient);
-              } catch (_) {}
+                
+                // Track RV commission recipients
+                if (comm.type === 'RV') {
+                  rvUsers.add(comm.userId.toString());
+                }
+              } catch (err) {
+                console.error('Error in commission notification:', err);
+              }
+            }
+            
+            // Update reward progress for each user who received RV
+            for (const userIdStr of rvUsers) {
+              try {
+                const userId = mongoose.Types.ObjectId(userIdStr);
+                const user = await User.findById(userId);
+                if (!user) continue;
+                
+                // Calculate fresh RV total for this user
+                const rvAgg = await Commission.aggregate([
+                  { $match: { userId, type: 'RV' } },
+                  { $group: { _id: null, total: { $sum: '$amount' } } },
+                ]);
+                const totalRv = rvAgg[0]?.total || 0;
+                
+                // Update reward progress
+                await checkAndUpdateRewards(userId, user.role, totalRv);
+                console.log(`✅ Updated reward progress for ${user.name} (${user.role}): RV=${totalRv}`);
+              } catch (err) {
+                console.error(`Error updating rewards for user ${userIdStr}:`, err);
+              }
             }
           });
         }
@@ -517,10 +653,51 @@ const confirmDelivery = async (req, res, next) => {
         );
       }
 
+      // 5. Record buyer commission (Wholesale/Mini Stock margin)
+      if (order.buyerCommission && order.buyerCommission.type !== 'NONE' && !order.buyerCommission.recorded) {
+        const commType = order.buyerCommission.type === 'WHOLESALE_MARGIN' ? 'RP' : 
+                         order.buyerCommission.type === 'MINISTOCK_MARGIN' ? 'RP' : 'RP';
+        
+        await Commission.create([{
+          userId: order.buyerId,
+          orderId: order._id,
+          role: order.buyerType,
+          type: commType,
+          amount: order.buyerCommission.totalAmount,
+          percentage: 100,
+          poolAmount: order.buyerCommission.totalAmount,
+          saleRV: order.total,
+          level: 'Direct',
+          configSnapshot: {
+            productSnapshot: order.productSnapshot,
+            incomeConfig: null,
+          },
+          snapshotUsed: true,
+        }], sessionOpts);
+        
+        order.buyerCommission.recorded = true;
+      }
+
       // 5. Mark order delivered
       order.status      = 'DELIVERED';
       order.deliveredAt = new Date();
       await order.save(sessionOpts);
+
+      // 6. Auto-create visit for advisor follow-up (if advisor exists)
+      if (order.advisorId && order.farmerId) {
+        const visitDate = new Date();
+        visitDate.setDate(visitDate.getDate() + 12); // Schedule visit 12 days after delivery
+
+        await Visit.create([{
+          farmerId: order.farmerId,
+          advisorId: order.advisorId,
+          orderId: order._id,
+          productId: order.productId,
+          scheduledDate: visitDate,
+          status: 'PENDING',
+          notes: 'Auto-scheduled follow-up visit after product delivery'
+        }], sessionOpts);
+      }
     };
 
     // ── Transactional path (Replica Set) ─────────────────────────────────────
@@ -550,7 +727,7 @@ const confirmDelivery = async (req, res, next) => {
       .populate('productId', 'name category price')
       .populate('sellerId',  'name role')
       .populate('buyerId',   'name role')
-      .populate('advisorId', 'name advisorCode');
+      .populate('advisorId', 'name employeeCode');
 
     res.json({
       success: true,
@@ -562,6 +739,12 @@ const confirmDelivery = async (req, res, next) => {
 };
 
 // POST /api/orders/pos-sale — Create POS sale (Mini Stock → Customer)
+// Smart advisor resolution:
+//   1. Look up farmer by phone
+//   2. If farmer has active advisor → reuse (ignore advisorCode input)
+//   3. If farmer has inactive advisor → auto-reassign to DO Manager
+//   4. If farmer has no advisor → use provided advisorCode
+//   5. If no farmer record → create one with provided advisorCode
 const createPOSSale = async (req, res, next) => {
   try {
     const { farmerName, farmerPhone, farmerLocation, advisorCode, items, paymentMethod, discount = 0 } = req.body;
@@ -579,31 +762,133 @@ const createPOSSale = async (req, res, next) => {
       });
     }
 
-    // Validate advisor code if provided
-    let advisorId = null;
-    let hierarchySnapshot = null;
-    
-    if (advisorCode) {
-      console.log(`🔍 Looking up advisor code: ${advisorCode}`);
-      const advisor = await User.findOne({ 
-        advisorCode: advisorCode.toUpperCase(),
+    // ── SMART ADVISOR RESOLUTION ──────────────────────────────────────────────
+    let resolvedAdvisorId = null;
+    let resolvedHierarchy = null;
+    let farmer = await Farmer.findOne({ phone: farmerPhone });
+    let advisorSource = 'none'; // tracks how advisor was resolved for logging
+
+    if (farmer && farmer.advisorId) {
+      // Farmer already has an advisor — check if still active
+      const existingAdvisor = await User.findById(farmer.advisorId).lean();
+
+      if (existingAdvisor && existingAdvisor.status === 'APPROVED') {
+        // ✅ Reuse existing advisor (ignore any advisorCode from input)
+        resolvedAdvisorId = farmer.advisorId;
+        resolvedHierarchy = await buildHierarchySnapshot(resolvedAdvisorId);
+        advisorSource = 'existing';
+        console.log(`✅ Farmer ${farmerPhone} → existing advisor ${existingAdvisor.employeeCode}`);
+      } else {
+        // Advisor is deactivated → try to reassign to DO Manager
+        console.log(`⚠️  Farmer ${farmerPhone}'s advisor is inactive, attempting reassignment`);
+        let reassigned = false;
+
+        if (existingAdvisor?.parentId) {
+          const doManager = await User.findById(existingAdvisor.parentId).lean();
+          if (doManager && doManager.status === 'APPROVED') {
+            // Log previous advisor in audit trail
+            farmer.previousAdvisors.push({
+              advisorId: farmer.advisorId,
+              from: farmer.assignedAt,
+              to: new Date(),
+              reason: 'DEACTIVATED',
+            });
+            farmer.advisorId = doManager._id;
+            farmer.assignedAt = new Date();
+            farmer.assignmentSource = 'REASSIGNED';
+            await farmer.save();
+
+            resolvedAdvisorId = doManager._id;
+            resolvedHierarchy = await buildHierarchySnapshot(resolvedAdvisorId);
+            advisorSource = 'reassigned_do';
+            reassigned = true;
+            console.log(`🔄 Farmer ${farmerPhone} reassigned to DO Manager ${doManager.name}`);
+          }
+        }
+
+        // If DO Manager also unavailable, try the fresh advisorCode from input
+        if (!reassigned && advisorCode) {
+          const freshAdvisor = await User.findOne({
+            employeeCode: advisorCode.toUpperCase(),
+            status: 'APPROVED'
+          }).lean();
+          if (freshAdvisor) {
+            farmer.previousAdvisors.push({
+              advisorId: farmer.advisorId,
+              from: farmer.assignedAt,
+              to: new Date(),
+              reason: 'DEACTIVATED',
+            });
+            farmer.advisorId = freshAdvisor._id;
+            farmer.assignedAt = new Date();
+            farmer.assignmentSource = 'POS_SALE';
+            await farmer.save();
+
+            resolvedAdvisorId = freshAdvisor._id;
+            resolvedHierarchy = await buildHierarchySnapshot(resolvedAdvisorId);
+            advisorSource = 'fresh_code';
+            console.log(`🆕 Farmer ${farmerPhone} assigned to new advisor ${freshAdvisor.employeeCode}`);
+          }
+        }
+      }
+    } else if (advisorCode) {
+      // No farmer record or farmer has no advisor — validate new code
+      const advisor = await User.findOne({
+        employeeCode: advisorCode.toUpperCase(),
         status: 'APPROVED'
       }).lean();
-      
+
       if (!advisor) {
-        console.log(`❌ Advisor not found for code: ${advisorCode}`);
         return res.status(404).json({ success: false, error: 'Invalid advisor code or advisor not approved' });
       }
-      
-      advisorId = advisor._id;
-      hierarchySnapshot = await buildHierarchySnapshot(advisorId);
-      console.log(`✅ Advisor found: ${advisor.name} (${advisor._id})`);
-      console.log(`📊 Hierarchy snapshot built for advisor`);
+
+      resolvedAdvisorId = advisor._id;
+      resolvedHierarchy = await buildHierarchySnapshot(resolvedAdvisorId);
+      advisorSource = 'new_assignment';
+
+      // Create or update Farmer record
+      if (!farmer) {
+        farmer = await Farmer.create({
+          name: farmerName,
+          phone: farmerPhone,
+          village: farmerLocation || '',
+          advisorId: resolvedAdvisorId,
+          assignedAt: new Date(),
+          assignmentSource: 'POS_SALE',
+        });
+        console.log(`🆕 New farmer ${farmerPhone} created & assigned to ${advisorCode}`);
+      } else {
+        // Farmer exists but had no advisor
+        farmer.advisorId = resolvedAdvisorId;
+        farmer.assignedAt = new Date();
+        farmer.assignmentSource = 'POS_SALE';
+        farmer.name = farmerName; // update name
+        if (farmerLocation) farmer.village = farmerLocation;
+        await farmer.save();
+        console.log(`📝 Farmer ${farmerPhone} assigned to ${advisorCode}`);
+      }
     } else {
-      console.log(`⚠️  No advisor code provided in POS sale`);
+      // No advisor code, no existing farmer — create farmer record without advisor
+      if (!farmer) {
+        farmer = await Farmer.create({
+          name: farmerName,
+          phone: farmerPhone,
+          village: farmerLocation || '',
+        });
+        console.log(`🆕 New farmer ${farmerPhone} created (no advisor)`);
+      } else {
+        // Update name/location if changed
+        let changed = false;
+        if (farmerName && farmer.name !== farmerName) { farmer.name = farmerName; changed = true; }
+        if (farmerLocation && farmer.village !== farmerLocation) { farmer.village = farmerLocation; changed = true; }
+        if (changed) await farmer.save();
+      }
+      console.log(`⚠️  No advisor code for farmer ${farmerPhone}`);
     }
 
-    // Get Mini Stock inventory
+    console.log(`📊 Advisor resolution: ${advisorSource} → ${resolvedAdvisorId || 'NONE'}`);
+
+    // ── INVENTORY & ORDER CREATION ────────────────────────────────────────────
     const inventory = await Inventory.findOne({ ownerId: req.user._id });
     if (!inventory) {
       return res.status(404).json({ success: false, error: 'Inventory not found' });
@@ -626,6 +911,8 @@ const createPOSSale = async (req, res, next) => {
         if (!product) {
           throw new Error(`Product ${productId} not found`);
         }
+        console.log(`🔍 Fetched product: ${product.name} (${product.sku})`);
+        console.log(`   DB values: rp=${product.rp}, iv=${product.iv}, sv=${product.sv}, rv=${product.rv}`);
 
         // Check stock availability
         const stockItem = inventory.items.find(i => i.productId.toString() === productId);
@@ -634,22 +921,42 @@ const createPOSSale = async (req, res, next) => {
         }
 
         const price = Number(product.price);
-        const itemTotal = price * quantity;
+        const itemSubtotal = price * quantity;
+        
+        // Use product's tax rate
+        const productTaxRate = Number(product.taxRate) || 18;
+        const itemTaxAmount = (itemSubtotal * productTaxRate) / 100;
+        const itemTotal = itemSubtotal + itemTaxAmount;
         totalAmount += itemTotal;
 
-        // Create order (buyerId = sellerId for customer sales since customer is not a user)
+        // Freeze commission pool values at time of sale
+        // Updated: 2026-05-05 - Fixed field names for commission calculation
+        const productSnapshot = {
+          rpPoints: Number(product.rp) || 0,
+          ivPoints: Number(product.iv) || 0,
+          svPoints: Number(product.sv) || 0,
+          rvPoints: Number(product.rv) || 0,
+        };
+        console.log(`📸 Creating productSnapshot:`, JSON.stringify(productSnapshot, null, 2));
+
+        // Create order
         const order = await Order.create([{
-          buyerId: req.user._id, // Use Mini Stock as buyer for customer sales
+          buyerId: req.user._id,
           buyerType: 'CUSTOMER',
           sellerId: req.user._id,
           sellerType: 'MINI_STOCK',
           productId,
           quantity,
           price,
+          subtotal: itemSubtotal,
+          taxRate: productTaxRate,
+          taxAmount: itemTaxAmount,
           total: itemTotal,
-          advisorId,
-          hierarchySnapshot,
-          status: 'DELIVERED', // POS sales are instant (uppercase)
+          advisorId: resolvedAdvisorId,
+          farmerId: farmer?._id || null,
+          hierarchySnapshot: resolvedHierarchy,
+          productSnapshot,
+          status: 'DELIVERED',
           paymentStatus: 'PAID',
           source: 'POS',
           region: farmerLocation || req.user.region,
@@ -658,14 +965,9 @@ const createPOSSale = async (req, res, next) => {
           customerLocation: farmerLocation,
         }], { session });
 
-        console.log(`📦 Order created: ${order[0]._id}`);
-        console.log(`   Product: ${product.name}`);
-        console.log(`   Total: ₹${itemTotal}`);
-        console.log(`   advisorId: ${advisorId || 'NULL'}`);
-        console.log(`   Customer: ${farmerName}`);
+        console.log(`📦 Order created: ${order[0]._id} | ${product.name} | ₹${itemTotal}`);
 
-
-        // Deduct stock immediately (use 'current' field)
+        // Deduct stock
         await Inventory.updateOne(
           { ownerId: req.user._id, 'items.productId': productId },
           { 
@@ -684,11 +986,29 @@ const createPOSSale = async (req, res, next) => {
           productId,
           quantity,
           from: req.user._id,
-          to: req.user._id, // Mini Stock is both from and to for customer sales
+          to: req.user._id,
           notes: `POS Sale to ${farmerName} (${farmerPhone})`,
         }], { session });
 
         createdOrders.push(order[0]);
+
+        // Auto-create visit for advisor follow-up (POS sales are immediately delivered)
+        if (resolvedAdvisorId && farmer?._id) {
+          const visitDate = new Date();
+          visitDate.setDate(visitDate.getDate() + 12); // Schedule visit 12 days after sale
+
+          await Visit.create([{
+            farmerId: farmer._id,
+            advisorId: resolvedAdvisorId,
+            orderId: order[0]._id,
+            productId,
+            scheduledDate: visitDate,
+            status: 'PENDING',
+            notes: 'Auto-scheduled follow-up visit after POS sale'
+          }], { session });
+
+          console.log(`📅 Visit scheduled for ${visitDate.toDateString()}`);
+        }
       }
 
       // Apply discount
@@ -696,21 +1016,69 @@ const createPOSSale = async (req, res, next) => {
       const finalAmount = totalAmount - discountAmount;
 
       // Calculate and distribute commissions if advisor exists
-      if (advisorId && hierarchySnapshot) {
+      if (resolvedAdvisorId && resolvedHierarchy) {
         const { distributeIncome } = require('../services/income.service');
         
-        // Distribute income for each order
         for (const order of createdOrders) {
           try {
-            await distributeIncome(order, hierarchySnapshot);
+            await distributeIncome(order, resolvedHierarchy);
           } catch (commError) {
             console.error(`Failed to distribute income for order ${order._id}:`, commError.message);
-            // Don't fail the transaction if commission distribution fails
           }
         }
+        
+        // Update reward progress for users who received RV commissions
+        // This runs asynchronously after transaction commits
+        setImmediate(async () => {
+          try {
+            // Get all RV commissions for these orders
+            const orderIds = createdOrders.map(o => o._id);
+            const rvCommissions = await Commission.find({
+              orderId: { $in: orderIds },
+              type: 'RV'
+            }).lean();
+            
+            // Track unique users who received RV
+            const rvUsers = new Set();
+            rvCommissions.forEach(comm => {
+              rvUsers.add(comm.userId.toString());
+            });
+            
+            // Update reward progress for each user
+            for (const userIdStr of rvUsers) {
+              try {
+                const userId = mongoose.Types.ObjectId(userIdStr);
+                const user = await User.findById(userId);
+                if (!user) continue;
+                
+                // Calculate fresh RV total for this user
+                const rvAgg = await Commission.aggregate([
+                  { $match: { userId, type: 'RV' } },
+                  { $group: { _id: null, total: { $sum: '$amount' } } },
+                ]);
+                const totalRv = rvAgg[0]?.total || 0;
+                
+                // Update reward progress
+                await checkAndUpdateRewards(userId, user.role, totalRv);
+                console.log(`✅ POS: Updated reward progress for ${user.name} (${user.role}): RV=${totalRv}`);
+              } catch (err) {
+                console.error(`Error updating rewards for user ${userIdStr}:`, err);
+              }
+            }
+          } catch (err) {
+            console.error('Error in POS reward update:', err);
+          }
+        });
       }
 
       await session.commitTransaction();
+
+      // Build the resolved advisor code for the invoice
+      let resolvedAdvisorCode = advisorCode || '';
+      if (resolvedAdvisorId && !advisorCode) {
+        const adv = await User.findById(resolvedAdvisorId).select('advisorCode').lean();
+        resolvedAdvisorCode = adv?.advisorCode || '';
+      }
 
       // Populate orders for response
       const populatedOrders = await Order.find({ 
@@ -724,13 +1092,14 @@ const createPOSSale = async (req, res, next) => {
         success: true,
         data: {
           orders: populatedOrders,
+          advisorSource,  // tells frontend how advisor was resolved
           invoice: {
             invoiceNumber: `INV-${Date.now()}`,
             date: new Date(),
             farmerName,
             farmerPhone,
             farmerLocation,
-            advisorCode,
+            advisorCode: resolvedAdvisorCode,
             items: populatedOrders.map(o => ({
               productName: o.productId.name,
               sku: o.productId.sku,
@@ -740,7 +1109,7 @@ const createPOSSale = async (req, res, next) => {
             })),
             subtotal: totalAmount,
             discount: discountAmount,
-            tax: 0, // Add tax calculation if needed
+            tax: 0,
             totalAmount: finalAmount,
             paymentMethod: paymentMethod || 'CASH',
             seller: {
@@ -763,9 +1132,99 @@ const createPOSSale = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// POST /api/orders/customer — Create customer order from public website
+const createCustomerOrder = async (req, res, next) => {
+  try {
+    const { items, shippingAddress, paymentMethod, subtotal, tax, totalAmount } = req.body;
+
+    // Validate customer role
+    if (req.user.role !== 'CUSTOMER') {
+      return res.status(403).json({ success: false, error: 'Only customers can place orders' });
+    }
+
+    // Validate required fields
+    if (!items || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'At least one item is required' });
+    }
+
+    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
+      return res.status(400).json({ success: false, error: 'Complete shipping address is required' });
+    }
+
+    // Find a wholesale or mini stock to fulfill the order (for now, find any approved wholesale)
+    const seller = await User.findOne({ 
+      role: { $in: ['WHOLESALE', 'MINI_STOCK'] }, 
+      status: 'APPROVED' 
+    }).lean();
+
+    if (!seller) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'No seller available. Please contact support.' 
+      });
+    }
+
+    // Create orders for each item
+    const createdOrders = [];
+    
+    for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) {
+        return res.status(404).json({ 
+          success: false, 
+          error: `Product not found: ${item.product}` 
+        });
+      }
+
+      const price = Number(item.price || product.price);
+      const quantity = Number(item.quantity);
+      const total = price * quantity;
+
+      // Create order
+      const order = await Order.create({
+        buyerId: req.user._id,
+        buyerType: 'CUSTOMER',
+        sellerId: seller._id,
+        sellerType: seller.role,
+        productId: item.product,
+        quantity,
+        price,
+        total,
+        status: 'PENDING',
+        paymentStatus: paymentMethod === 'COD' ? 'PENDING' : 'PENDING',
+        paymentMethod: paymentMethod || 'COD',
+        source: 'WEBSITE',
+        customerName: shippingAddress.name,
+        customerPhone: shippingAddress.phone,
+        customerLocation: `${shippingAddress.street}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.pincode}`,
+      });
+
+      createdOrders.push(order);
+    }
+
+    // Populate the orders
+    const populatedOrders = await Order.find({ 
+      _id: { $in: createdOrders.map(o => o._id) } 
+    })
+      .populate('productId', 'name category price image')
+      .populate('sellerId', 'name role');
+
+    res.status(201).json({
+      success: true,
+      data: populatedOrders,
+      message: 'Orders placed successfully'
+    });
+
+  } catch (err) { 
+    console.error('Customer order creation error:', err);
+    next(err); 
+  }
+};
+
 
 module.exports = { 
-  createOrder, 
+  createOrder,
+  createCustomerOrder,
   getMyOrders,
   getAdminOrders,
   getWholesaleOrders,
@@ -781,6 +1240,5 @@ module.exports = {
   confirmDelivery,
   createPOSSale,
 };
-
 
 

@@ -1,204 +1,320 @@
 import React, { useEffect, useState } from 'react';
 import { commissionsApi } from '../api/commissions.api';
 import { useAuth } from '../contexts/AuthContext';
-import { PageHeader, Card, SkeletonPage, AnimatedStat } from '../components/ui';
-import { DollarSign, TrendingUp, Award, BarChart2, ChevronDown, ChevronUp, Download, Search } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatCurrency } from '../utils/helpers';
+import { formatCurrency, formatPoints } from '../utils/helpers';
 import { exportCSV } from '../utils/exportCSV';
+import { DollarSign, TrendingUp, Award, BarChart2, Download, Search } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+const TYPE_META = {
+  RP: { label: 'Retail Point', bg: 'bg-rose-100 text-rose-700' },
+  IV: { label: 'Incentive',    bg: 'bg-blue-100 text-blue-700' },
+  SV: { label: 'Salary Value', bg: 'bg-purple-100 text-purple-700' },
+  RV: { label: 'Rewards',      bg: 'bg-amber-100 text-amber-700' },
+};
 
 export default function CommissionPage() {
   const { user } = useAuth();
   const [commissions, setCommissions] = useState([]);
   const [summary,     setSummary]     = useState(null);
-  const [expanded,    setExpanded]    = useState({});
   const [loading,     setLoading]     = useState(true);
   const [filterType,  setFilterType]  = useState('ALL');
   const [search,      setSearch]      = useState('');
+  const [timeRange,   setTimeRange]   = useState('day'); // 'day', 'week', 'month'
 
   useEffect(() => {
-    const controller = new AbortController();
+    const ctrl = new AbortController();
     Promise.all([
-      commissionsApi.getMy({ signal: controller.signal }),
-      commissionsApi.getSummary({ signal: controller.signal }),
+      commissionsApi.getMy({ signal: ctrl.signal }),
+      commissionsApi.getSummary({ signal: ctrl.signal }),
     ]).then(([c, s]) => {
       setCommissions(c.data.data || []);
       setSummary(s.data.data);
-    }).catch(() => {})
+    }).catch(e => { if (e?.name !== 'AbortError') console.error(e); })
     .finally(() => setLoading(false));
-    return () => controller.abort();
+    return () => ctrl.abort();
   }, [user]);
 
+  const tabs = user?.role === 'ADVISOR' 
+    ? ['ALL', 'RP'] 
+    : ['ALL', 'IV']; // Managers: Hide SV and RV tabs (salary and rewards are private)
+
   const filtered = commissions.filter(c => {
+    // For ALL users: Hide SV and RV transactions (salary and rewards are private)
+    if (c.type === 'SV' || c.type === 'RV') {
+      return false;
+    }
+    
     const matchType = filterType === 'ALL' || c.type === filterType;
-    const matchSearch = !search || 
-      c.type?.toLowerCase().includes(search.toLowerCase()) ||
-      c.role?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || c.type?.toLowerCase().includes(search.toLowerCase()) || c.role?.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
-  // Monthly breakdown
-  const monthlyBreakdown = (() => {
+  const monthlyBreakdown = React.useMemo(() => {
+    if (timeRange === 'day') {
+      // Real daily data from commissions
+      const dailyMap = {};
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      commissions.forEach(c => {
+        const date = new Date(c.date);
+        if (date >= thirtyDaysAgo) {
+          const day = c.date?.slice(0, 10); // YYYY-MM-DD
+          if (day) {
+            dailyMap[day] = (dailyMap[day] || 0) + (c.amount || c.points || 0);
+          }
+        }
+      });
+      
+      // Fill in missing days with 0
+      const dailyData = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().slice(0, 10);
+        const dayNum = date.getDate();
+        dailyData.push({
+          month: `Day ${dayNum}`,
+          points: dailyMap[dateStr] || 0,
+          fullDate: dateStr,
+        });
+      }
+      return dailyData;
+    }
+    
+    if (timeRange === 'week') {
+      // Real weekly data from commissions
+      const weeklyMap = {};
+      const now = new Date();
+      const twelveWeeksAgo = new Date(now.getTime() - 12 * 7 * 24 * 60 * 60 * 1000);
+      
+      commissions.forEach(c => {
+        const date = new Date(c.date);
+        if (date >= twelveWeeksAgo) {
+          // Get week number
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+          const weekKey = weekStart.toISOString().slice(0, 10);
+          weeklyMap[weekKey] = (weeklyMap[weekKey] || 0) + (c.amount || c.points || 0);
+        }
+      });
+      
+      // Convert to array and sort
+      const weeklyData = Object.entries(weeklyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([week, points], idx) => ({
+          month: `W${idx + 1}`,
+          points,
+          fullDate: week,
+        }));
+      
+      return weeklyData.slice(-12); // Last 12 weeks
+    }
+    
+    // Monthly data (default)
     const map = {};
     commissions.forEach(c => {
-      const month = c.date?.slice(0,7);
+      const month = c.date?.slice(0, 7); // YYYY-MM
       if (!month) return;
-      if (!map[month]) map[month] = 0;
-      map[month] += c.amount;
+      map[month] = (map[month] || 0) + (c.amount || c.points || 0);
     });
-    return Object.entries(map)
-      .sort(([a],[b]) => a.localeCompare(b))
-      .map(([month, amount]) => ({ month: month.slice(5) + '/' + month.slice(2,4), amount }));
-  })();
+    
+    const monthlyData = Object.entries(map)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, points]) => ({ 
+        month: month.slice(5) + '/' + month.slice(2, 4), // MM/YY
+        points, 
+        fullDate: month 
+      }));
+    
+    return monthlyData;
+  }, [commissions, timeRange]);
 
-  if (loading) return <SkeletonPage />;
+  if (loading) return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1,2,3,4].map(i=><Skeleton key={i} className="h-24 rounded-xl"/>)}</div>
+      <Skeleton className="h-56 w-full rounded-xl" />
+    </div>
+  );
 
   return (
     <div className="space-y-5">
-      <PageHeader title="My Commissions" subtitle="Snapshot-protected earnings history"
-        actions={commissions.length > 0 && (
-          <button onClick={() => exportCSV(commissions.map(c => ({
-            Type: c.type, Level: c.level, Amount: c.amount, Role: c.role, Date: c.date?.slice(0,10), Snapshot: c.snapshotUsed ? 'Yes' : 'No'
-          })), 'commissions')} className="btn-export">
-            <Download size={12} /> Export CSV
-          </button>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Commissions</h1>
+          <p className="text-muted-foreground text-sm mt-1">Snapshot-protected earnings history</p>
+        </div>
+          {commissions.length > 0 && (
+          <Button variant="outline" size="sm" onClick={() => exportCSV(commissions.map(c => ({
+            Type: c.type, Level: c.level, Amount: c.amount || c.points || 0, Role: c.role, Date: c.date?.slice(0,10)
+          })), 'commissions')}>
+            <Download size={13} className="mr-1.5" /> Export CSV
+          </Button>
         )}
-      />
+      </div>
 
-      {/* Summary cards with tooltips */}
+      {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-          {[
-            { label: 'Total Earned',    value: summary.total,        icon: DollarSign,  bg: 'bg-green-50',   color: 'text-green-600',   tooltip: 'Total commission from all sources' },
-            { label: 'Retail Price',    value: summary.RETAIL_PRICE, icon: Award,       bg: 'bg-rose-50',    color: 'text-rose-600',    tooltip: '100% of Retail Value for your direct sales' },
-            { label: 'Incentive (IV)',  value: summary.IV,           icon: Award,       bg: 'bg-blue-50',    color: 'text-blue-600',    tooltip: 'Incentive pool distribution from hierarchy' },
-            { label: 'Salary (SV)',     value: summary.SV,           icon: TrendingUp,  bg: 'bg-purple-50',  color: 'text-purple-600',  tooltip: 'Salary pool distribution from hierarchy' },
-            { label: 'Reward (RF)',     value: summary.RF,          icon: BarChart2,   bg: 'bg-amber-50',   color: 'text-amber-600',   tooltip: 'Reward pool distribution from hierarchy' },
-            { label: 'This Month',      value: summary.thisMonth,   icon: BarChart2,   bg: 'bg-emerald-50', color: 'text-emerald-600', tooltip: 'Total commission earned this month' },
-          ].map(s => (
-            <Card key={s.label} title={s.tooltip} className="hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}><s.icon size={18} className={s.color} /></div>
-                <div>
-                  <p className="text-xs text-slate-500">{s.label}</p>
-                  <p className="text-lg font-bold text-slate-800"><AnimatedStat value={s.value || 0} format="currency" /></p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {(user?.role === 'ADVISOR' ? [
+            // For ADVISOR: Show all pools (RP + SV + RV)
+            { label: 'Total Earned',       value: summary.total,        icon: DollarSign, bg: 'bg-primary/10', color: 'text-primary' },
+            { label: 'Retail Point (RP)',  value: summary.RP,           icon: Award,      bg: 'bg-rose-50',    color: 'text-rose-600' },
+            { label: 'Today Earned',       value: summary.today || 0,   icon: TrendingUp, bg: 'bg-blue-50',    color: 'text-blue-600' },
+            { label: 'This Month',         value: summary.thisMonth,    icon: BarChart2,  bg: 'bg-emerald-50', color: 'text-emerald-600' },
+          ] : [
+            // For MANAGERS: Show only IV-related cards (SV and RV have their own tabs)
+            { label: 'Total Earned (₹)',   value: summary.IV,                icon: DollarSign, bg: 'bg-primary/10', color: 'text-primary' },
+            { label: 'Incentive (₹)',      value: summary.IV,                icon: Award,      bg: 'bg-blue-50',    color: 'text-blue-600' },
+            { label: 'Today Earned',       value: summary.todayIV || 0,      icon: TrendingUp, bg: 'bg-purple-50',  color: 'text-purple-600' },
+            { label: 'This Month',         value: summary.thisMonthIV || 0,  icon: BarChart2,  bg: 'bg-emerald-50', color: 'text-emerald-600' },
+          ]).map(s => (
+            <Card key={s.label} className="hover:shadow-md transition-shadow">
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
+                  <s.icon size={18} className={s.color} />
                 </div>
-              </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-lg font-bold">{formatCurrency(s.value || 0)}</p>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Monthly chart */}
+      {/* Monthly Chart */}
       {monthlyBreakdown.length > 0 && (
         <Card>
-          <h3 className="text-sm font-semibold text-slate-800 mb-4">Monthly Earnings</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={monthlyBreakdown}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v/1000).toFixed(1)}k`} />
-              <Tooltip formatter={v => formatCurrency(v)} contentStyle={{ borderRadius: '0.75rem', border: '1px solid #e2e8f0' }} />
-              <Bar dataKey="amount" fill="#22c55e" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold">
+              {timeRange === 'day' ? 'Daily' : timeRange === 'week' ? 'Weekly' : 'Monthly'} Earnings
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant={timeRange === 'day' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTimeRange('day')}
+              >
+                Day
+              </Button>
+              <Button
+                variant={timeRange === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTimeRange('week')}
+              >
+                Week
+              </Button>
+              <Button
+                variant={timeRange === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTimeRange('month')}
+              >
+                Month
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={monthlyBreakdown}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v/1000).toFixed(1)}k`} />
+                <Tooltip 
+                  formatter={v => formatCurrency(v)} 
+                  contentStyle={{ 
+                    borderRadius: '0.75rem', 
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: 'white'
+                  }} 
+                />
+                <Bar dataKey="points" fill="#3b82f6" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
         </Card>
       )}
 
-      {/* Commission info card */}
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 bg-blue-200 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Award size={22} className="text-blue-700" />
+      {/* Info banner */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="flex items-start gap-3 p-4">
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+            <Award size={18} className="text-blue-700" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900">Understanding Your Commission</h3>
+          <div>
+            <p className="text-sm font-semibold text-blue-900">Understanding Your Commission</p>
             <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-              <strong>Retail Price:</strong> You earn 100% of the Retail Value for your own sales. 
-              <strong className="ml-2">IV/SV/RF:</strong> Pool-based earnings from your hierarchy chain (30%/30%/20% of each sale distributed across levels).
+              {user?.role === 'ADVISOR'
+                ? <><strong>RP (Retail Point):</strong> Advisor earns 100% of the product's RP value × qty sold.</>
+                : <><strong>RP:</strong> Advisor earns 100% RP × qty.&nbsp; <strong>IV:</strong> DO 42% → AM 23% → ZM 15% → SH 10%.&nbsp; <strong>SV/RV:</strong> Advisor 42% + DO 23% + AM 15% + ZM 10% + SH 10%.</>
+              }
             </p>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
-      {/* Filters - Mobile optimized */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
-          {['ALL', 'RETAIL_PRICE', 'IV', 'SV', 'RF'].map(t => (
-            <button key={t} onClick={() => setFilterType(t)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${filterType === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              {t === 'ALL' ? 'All' : t === 'RETAIL_PRICE' ? 'Retail' : t}
-            </button>
-          ))}
-        </div>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input-field pl-8 text-xs py-1.5 w-full" placeholder="Search..."
-            value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Type Filter + Search */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Tabs value={filterType} onValueChange={setFilterType}>
+          <TabsList>
+            {tabs.map(t => (
+              <TabsTrigger key={t} value={t} className="text-xs px-3">
+                {t === 'ALL' ? 'All' : TYPE_META[t]?.label || t}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="relative flex-1 max-w-xs">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9 h-9" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* Commission records */}
-      <Card padding={false}>
-        <div className="px-5 py-3 border-b border-slate-50 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-800">Commission Records</h3>
-          <p className="text-xs text-slate-400">{filtered.length} records</p>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">No commissions match this filter.
-            {filterType !== 'ALL' && (
-              <p className="text-xs mt-2 text-slate-500">Try selecting "All" to see all commission types</p>
-            )}
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-50">
-            {filtered.map((c, i) => {
-              const open = expanded[c._id];
+      {/* Records */}
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardTitle className="text-sm font-semibold">Commission Records</CardTitle>
+          <span className="text-xs text-muted-foreground">{filtered.length} records</span>
+        </CardHeader>
+        <div className="divide-y divide-border">
+          {filtered.length === 0 ? (
+            <p className="p-8 text-center text-sm text-muted-foreground">No commissions match this filter.</p>
+          ) : (
+            filtered.map((c, i) => {
+              const meta = TYPE_META[c.type] || { label: c.type, bg: 'bg-muted text-muted-foreground' };
               return (
                 <div key={c._id || i}>
-                  <div className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => setExpanded(prev => ({ ...prev, [c._id]: !open }))}>
+                  <div className="px-5 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                        c.type === 'RETAIL_PRICE' ? 'bg-rose-100 text-rose-700' :
-                        c.type === 'IV' ? 'bg-blue-100 text-blue-700' : 
-                        c.type === 'SV' ? 'bg-purple-100 text-purple-700' : 
-                        'bg-amber-100 text-amber-700'
-                      }`}>
-                        {c.type === 'RETAIL_PRICE' ? 'RP' : c.type}
-                      </div>
+                      <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${meta.bg}`}>{c.type}</span>
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{c.type === 'RETAIL_PRICE' ? 'Retail Price' : c.type} - {c.role?.replace(/_/g,' ')}</p>
-                        <p className="text-xs text-slate-400">{c.level} · {c.percentage}% {c.type === 'RETAIL_PRICE' ? 'of RV' : 'of pool'} · {c.date?.slice(0,10)}</p>
+                        <p className="text-sm font-medium">{meta.label} — {c.role?.replace(/_/g,' ')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {user?.role === 'ADVISOR' 
+                            ? `${c.level} · ${c.date?.slice(0,10)}` 
+                            : `${c.level} · ${c.percentage}% of pool · ${c.date?.slice(0,10)}`
+                          }
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-green-700">{formatCurrency(c.amount)}</p>
-                      {open ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+                      <p className="text-sm font-bold text-primary">{formatCurrency(c.amount || c.points || 0)}</p>
                     </div>
                   </div>
-                  {open && (
-                    <div className="px-5 pb-3 pt-0 bg-slate-50/60">
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                        <span>Type: <strong className={
-                          c.type === 'RETAIL_PRICE' ? 'text-rose-700' :
-                          c.type === 'IV' ? 'text-blue-700' : 
-                          c.type === 'SV' ? 'text-purple-700' : 
-                          'text-amber-700'
-                        }>{c.type === 'RETAIL_PRICE' ? 'Retail Price' : c.type}</strong></span>
-                        <span>{c.type === 'RETAIL_PRICE' ? 'Sale Amount' : 'Pool Amount'}: <strong>{formatCurrency(c.poolAmount)}</strong></span>
-                        <span>Your %: <strong>{c.percentage}%</strong></span>
-                        <span>Your Earning: <strong className="text-green-700">{formatCurrency(c.amount)}</strong></span>
-                        <span>Sale RV: <strong>{formatCurrency(c.saleRV)}</strong></span>
-                        <span>Level: <strong>{c.level}</strong></span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
-            })}
-          </div>
-        )}
+            })
+          )}
+        </div>
       </Card>
     </div>
   );

@@ -22,12 +22,16 @@ export const calculateTotal = (cart, options = {}) => {
     deliveryCharge = 100,
     discountPercent = 0,
     freeShippingThreshold = 5000,
+    taxInclusive = true, // NEW: Flag to indicate if prices include tax
   } = options;
 
   const subtotal = calculateSubtotal(cart);
   const discount = applyDiscount(subtotal, discountPercent);
   const subtotalAfterDiscount = subtotal - discount;
-  const tax = calculateTax(subtotalAfterDiscount, taxRate);
+  
+  // If tax is inclusive, don't add it again
+  const tax = taxInclusive ? 0 : calculateTax(subtotalAfterDiscount, taxRate);
+  
   const delivery = subtotal >= freeShippingThreshold ? 0 : deliveryCharge;
   const total = subtotalAfterDiscount + tax + delivery;
 
@@ -37,6 +41,7 @@ export const calculateTotal = (cart, options = {}) => {
     tax,
     delivery,
     total,
+    taxInclusive, // Return flag so UI knows how to display
   };
 };
 

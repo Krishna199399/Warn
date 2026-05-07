@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../api/auth.api';
-import { Leaf, User, Phone, Lock, Store, MapPin, Tag, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Leaf, User, Phone, Lock, Store, MapPin, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ACCOUNT_TYPES = [
-  { value: 'ADVISOR', label: 'Advisor' },
+  { value: 'CUSTOMER', label: 'Customer' },
   { value: 'WHOLESALE', label: 'Wholesale' },
   { value: 'MINI_STOCK', label: 'Mini Stock' },
-  { value: 'CUSTOMER', label: 'Customer' },
 ];
 
 export default function RegisterPage() {
@@ -18,7 +22,6 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    referralCode: '',
     shopName: '',
     location: '',
   });
@@ -36,31 +39,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Full name is required');
-      return;
-    }
-    if (!formData.phone.trim()) {
-      setError('Phone number is required');
-      return;
-    }
-    if (formData.phone.length < 10) {
-      setError('Phone number must be at least 10 digits');
-      return;
-    }
-    if (!formData.password) {
-      setError('Password is required');
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
+    if (!formData.name.trim()) return setError('Full name is required');
+    if (!formData.phone.trim()) return setError('Phone number is required');
+    if (formData.phone.length < 10) return setError('Phone number must be at least 10 digits');
+    if (!formData.password) return setError('Password is required');
+    if (formData.password.length < 6) return setError('Password must be at least 6 characters');
+    if (formData.password !== formData.confirmPassword) return setError('Passwords do not match');
 
     setLoading(true);
     try {
@@ -71,10 +55,6 @@ export default function RegisterPage() {
         role: accountType,
       };
 
-      // Add conditional fields
-      if (accountType === 'ADVISOR' && formData.referralCode.trim()) {
-        payload.referralCode = formData.referralCode.trim();
-      }
       if ((accountType === 'WHOLESALE' || accountType === 'MINI_STOCK') && formData.shopName.trim()) {
         payload.shopName = formData.shopName.trim();
       }
@@ -85,12 +65,10 @@ export default function RegisterPage() {
       const response = await authApi.register(payload);
       
       if (response.data.success) {
-        // If auto-approved (WHOLESALE, MINI_STOCK, CUSTOMER), redirect to dashboard
         if (response.data.data.accessToken) {
           sessionStorage.setItem('accessToken', response.data.data.accessToken);
           navigate('/dashboard');
         } else {
-          // If pending approval (ADVISOR), show success message
           alert(response.data.message);
           navigate('/login');
         }
@@ -103,219 +81,219 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden page-enter bg-gradient-to-br from-amber-50 via-stone-100 to-orange-50">
+      {/* Blur circles */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-amber-200/40 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-200/40 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-stone-200/30 rounded-full blur-3xl" />
+
+      <div className="relative w-full max-w-md py-8">
+        {/* Back to Home Link */}
+        <div className="absolute -top-4 left-0">
+          <Link 
+            to="/" 
+            className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-amber-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+          </Link>
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-green-600 rounded-2xl shadow-lg mb-3">
-            <Leaf size={28} className="text-white" />
+          <div className="inline-flex items-center justify-center mb-3">
+            <img 
+              src="/logo-full-tagline.png" 
+              srcSet="/logo-full-tagline@2x.png 2x"
+              alt="Warnamayii Krishi Resources" 
+              className="h-24 w-auto object-contain"
+            />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Create Account</h1>
-          <p className="text-sm text-slate-500 mt-1">Join WANS - Warnamayii Agri Network</p>
         </div>
 
         {/* Registration Form Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Account Type Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Account Type</label>
-              <select
-                value={accountType}
-                onChange={(e) => setAccountType(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm bg-white"
-              >
-                {ACCOUNT_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
-              <div className="relative">
-                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
-                  required
-                />
+        <Card className="shadow-xl shadow-amber-900/10 border-amber-200/50 backdrop-blur-sm bg-white/90">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Account Type Dropdown */}
+              <div className="space-y-1.5">
+                <Label>Account Type</Label>
+                <Select value={accountType} onValueChange={setAccountType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Account Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCOUNT_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
 
-            {/* Phone Number */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
-              <div className="relative">
-                <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your phone number"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
-                  required
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-1">Use this to login</p>
-            </div>
-
-            {/* Conditional: Referral Code (Advisor only) */}
-            {accountType === 'ADVISOR' && (
-              <div className="transition-all">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Referral Code <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
+              {/* Full Name */}
+              <div className="space-y-1.5">
+                <Label>Full Name</Label>
                 <div className="relative">
-                  <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
+                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
                     type="text"
-                    name="referralCode"
-                    value={formData.referralCode}
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
-                    placeholder="DO Manager code or phone"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Enter your DO Manager's code or phone</p>
-              </div>
-            )}
-
-            {/* Conditional: Shop Name (Wholesale/Mini Stock) */}
-            {(accountType === 'WHOLESALE' || accountType === 'MINI_STOCK') && (
-              <div className="transition-all">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Shop Name <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <div className="relative">
-                  <Store size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    name="shopName"
-                    value={formData.shopName}
-                    onChange={handleChange}
-                    placeholder="Enter your shop name"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
+                    placeholder="Enter your full name"
+                    className="pl-9"
+                    required
                   />
                 </div>
               </div>
-            )}
 
-            {/* Conditional: Location (Customer) */}
-            {accountType === 'CUSTOMER' && (
-              <div className="transition-all">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Location <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <Label>Phone Number</Label>
                 <div className="relative">
-                  <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Enter your location"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
+                    placeholder="Enter your phone number"
+                    className="pl-9"
+                    required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">Use this to login</p>
               </div>
-            )}
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a password (min 6 characters)"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Confirm Password</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-sm"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-
-            {/* Info Message for Advisor */}
-            {accountType === 'ADVISOR' && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  ℹ️ Advisor accounts require admin approval. You'll be notified once approved.
-                </p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
+              {/* Conditional: Shop Name (Wholesale/Mini Stock) */}
+              {(accountType === 'WHOLESALE' || accountType === 'MINI_STOCK') && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                  <Label>Shop Name <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                  <div className="relative">
+                    <Store size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      name="shopName"
+                      value={formData.shopName}
+                      onChange={handleChange}
+                      placeholder="Enter your shop name"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              {/* Conditional: Location (Customer) */}
+              {accountType === 'CUSTOMER' && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                  <Label>Location <span className="text-muted-foreground font-normal">(Optional)</span></Label>
+                  <div className="relative">
+                    <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleChange}
+                      placeholder="Enter your location"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label>Password</Label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Create a password (min 6 characters)"
+                    className="pl-9 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <Label>Confirm Password</Label>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Confirm your password"
+                    className="pl-9 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <AlertCircle size={16} className="text-destructive mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
+
+              {/* Info Message for Wholesale/Mini Stock */}
+              {(accountType === 'WHOLESALE' || accountType === 'MINI_STOCK') && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-700">
+                    🏪 Shop registrations require admin approval. You'll be able to log in once your shop is approved.
+                  </p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 mt-4"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Login Link */}
-        <p className="text-center text-sm text-slate-600 mt-6">
+        <p className="text-center text-sm text-stone-600 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-green-600 hover:text-green-700 font-semibold transition-colors">
+          <Link to="/login" className="text-amber-700 hover:underline font-semibold transition-colors">
             Login here
           </Link>
         </p>

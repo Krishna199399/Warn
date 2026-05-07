@@ -57,34 +57,10 @@ export function HierarchyProvider({ children }) {
     nodes.filter(n => !n.parentId)
   , [nodes]);
 
-  // ── executePromotion — called by PromotionContext on admin approval ────────
-  // Locally updates the node in state so hierarchy view refreshes instantly,
-  // then re-fetches from server for ground truth.
-  const executePromotion = useCallback(async (userId, newRole) => {
-    const id = userId?.toString();
-    setNodes(prev => prev.map(n => {
-      if ((n._id || n.id)?.toString() !== id) return n;
-      // Find grandparent (new parent after promotion)
-      const currentParent = prev.find(p => (p._id || p.id)?.toString() === n.parentId?.toString());
-      const newParentId   = currentParent?.parentId ?? null;
-      return {
-        ...n,
-        role:         newRole,
-        parentId:     newParentId,
-        previousRole: n.role,
-        isPromoted:   true,
-        promotedAt:   new Date().toISOString(),
-      };
-    }));
-    // Re-sync from server
-    try { await fetchTree(); } catch (_) {}
-  }, [fetchTree]);
-
   return (
     <HierarchyContext.Provider value={{
       nodes, loading, error,
       fetchTree, buildTree, getEmployeeRoots,
-      executePromotion,
       // Expose empty commissions/orders arrays — CommissionPage uses its own API
       commissions: [],
       orders: [],

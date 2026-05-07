@@ -2,6 +2,9 @@ const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controllers/order.controller');
 const { protect } = require('../middleware/auth.middleware');
+const validate = require('../middleware/validate.middleware');
+const { authorizeOrderAccess } = require('../middleware/authorization.middleware');
+const { createOrderSchema, updateOrderStatusSchema, verifyPaymentSchema } = require('../schemas/order.schema');
 
 // Role-specific list endpoints (must be before /:id)
 router.get('/admin',        protect, ctrl.getAdminOrders);
@@ -11,15 +14,17 @@ router.get('/mini',         protect, ctrl.getMiniOrders);
 router.get('/my',           protect, ctrl.getMyOrders);
 
 // General CRUD
-router.post('/',                    protect, ctrl.createOrder);
-router.post('/pos-sale',            protect, ctrl.createPOSSale);
+// 🔒 SECURITY: Validation + Authorization applied
+router.post('/',                    protect, validate(createOrderSchema), ctrl.createOrder);
+router.post('/customer',            protect, validate(createOrderSchema), ctrl.createCustomerOrder); // New: Customer orders from website
+router.post('/pos-sale',            protect, validate(createOrderSchema), ctrl.createPOSSale);
 router.get('/',                     protect, ctrl.getOrders);
-router.get('/:id',                  protect, ctrl.getOrder);
-router.put('/:id/status',           protect, ctrl.updateOrderStatus);
-router.put('/:id/verify-payment',   protect, ctrl.verifyPayment);
-router.put('/:id/approve',          protect, ctrl.approveOrder);
-router.put('/:id/reject',           protect, ctrl.rejectOrder);
-router.put('/:id/ship',             protect, ctrl.shipOrder);
-router.put('/:id/deliver',          protect, ctrl.confirmDelivery);
+router.get('/:id',                  protect, authorizeOrderAccess, ctrl.getOrder);
+router.put('/:id/status',           protect, authorizeOrderAccess, validate(updateOrderStatusSchema), ctrl.updateOrderStatus);
+router.put('/:id/verify-payment',   protect, authorizeOrderAccess, ctrl.verifyPayment);
+router.put('/:id/approve',          protect, authorizeOrderAccess, ctrl.approveOrder);
+router.put('/:id/reject',           protect, authorizeOrderAccess, ctrl.rejectOrder);
+router.put('/:id/ship',             protect, authorizeOrderAccess, ctrl.shipOrder);
+router.put('/:id/deliver',          protect, authorizeOrderAccess, ctrl.confirmDelivery);
 
 module.exports = router;

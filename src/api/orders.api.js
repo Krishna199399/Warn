@@ -12,6 +12,7 @@ export const ordersApi = {
   getMy:           (config)      => client.get('/orders/my', config),
   getOne:          (id)          => client.get(`/orders/${id}`),
   create:          (data)       => client.post('/orders', data),
+  createCustomerOrder: (data)   => client.post('/orders/customer', data),
   updateStatus:    (id, status) => client.put(`/orders/${id}/status`, { status }),
   verifyPayment:   (id)         => client.put(`/orders/${id}/verify-payment`),
   approve:         (id)         => client.put(`/orders/${id}/approve`),

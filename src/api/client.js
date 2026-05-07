@@ -8,10 +8,41 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Attach access token to every request ──────────────────────────────────────
+// 🔒 SECURITY: Token storage moved to memory (AuthContext)
+// This module now uses a token getter function instead of sessionStorage
+let getAccessToken = () => null;
+
+export const setTokenGetter = (getter) => {
+  getAccessToken = getter;
+};
+
+// 🔒 SECURITY: CSRF token management
+let csrfToken = null;
+
+export const initializeCsrf = async () => {
+  try {
+    const { data } = await axios.get(`${BASE_URL}/csrf-token`, {
+      withCredentials: true
+    });
+    csrfToken = data.csrfToken;
+    return csrfToken;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    return null;
+  }
+};
+
+// ── Attach access token and CSRF token to every request ───────────────────────
 client.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('accessToken');
+  // Add access token
+  const token = getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  
+  // 🔒 SECURITY: Add CSRF token to state-changing requests
+  if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method?.toUpperCase())) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+  
   return config;
 });
 
@@ -25,7 +56,6 @@ const processQueue = (error, token = null) => {
 };
 
 const redirectToLogin = () => {
-  sessionStorage.removeItem('accessToken');
   // Only redirect if not already on an auth page to avoid redirect loops
   if (!window.location.pathname.startsWith('/login') &&
       !window.location.pathname.startsWith('/register')) {
@@ -53,7 +83,7 @@ client.interceptors.response.use(
     }
 
     // ── No token at all → don't even try to refresh ───────────────────────
-    const hasToken = !!sessionStorage.getItem('accessToken');
+    const hasToken = !!getAccessToken();
     if (!hasToken) {
       // Silently reject — HierarchyContext and other providers handle this gracefully
       return Promise.reject(error);
@@ -79,9 +109,17 @@ client.interceptors.response.use(
         { withCredentials: true }
       );
       const { accessToken } = data.data;
-      sessionStorage.setItem('accessToken', accessToken);
+      
+      // 🔒 SECURITY: Token will be stored in AuthContext memory, not sessionStorage
+      // The token getter will be updated by AuthContext
       processQueue(null, accessToken);
       original.headers.Authorization = `Bearer ${accessToken}`;
+      
+      // Return the new token so AuthContext can update it
+      if (window.__updateAccessToken) {
+        window.__updateAccessToken(accessToken);
+      }
+      
       return client(original);
     } catch (refreshErr) {
       processQueue(refreshErr, null);

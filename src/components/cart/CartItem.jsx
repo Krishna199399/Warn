@@ -1,6 +1,8 @@
 import React from 'react';
 import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import { formatCurrency } from '../../utils/helpers';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function CartItem({ item, onUpdateQuantity, onRemove }) {
   const handleDecrease = () => {
@@ -16,63 +18,73 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
   const itemTotal = item.price * item.quantity;
 
   return (
-    <div className="card p-4 flex items-center gap-4 group hover:shadow-md transition-all duration-200">
-      {/* Product Image */}
-      <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
-        {item.image ? (
-          <img 
-            src={item.image} 
-            alt={item.name} 
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <Package size={32} className="text-slate-400" />
-        )}
-      </div>
-
-      {/* Product Details */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-slate-900 truncate">{item.name}</h3>
-        <p className="text-sm text-slate-500 mt-0.5">{item.category || 'Product'}</p>
-        <p className="text-sm font-semibold text-green-600 mt-1">
-          {formatCurrency(item.price)} <span className="text-slate-400 font-normal">per unit</span>
-        </p>
-      </div>
-
-      {/* Quantity Controls */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleDecrease}
-          disabled={item.quantity <= 1}
-          className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Minus size={14} className="text-slate-600" />
-        </button>
-        
-        <div className="w-12 text-center">
-          <span className="font-semibold text-slate-900">{item.quantity}</span>
+    <Card className="group hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        {/* Product Image */}
+        <div className="w-20 h-20 rounded-xl bg-muted border flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {item.image ? (
+            <img 
+              src={item.image} 
+              alt={item.name} 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Package size={28} className="text-muted-foreground/50" />
+          )}
         </div>
-        
-        <button
-          onClick={handleIncrease}
-          className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors"
-        >
-          <Plus size={14} className="text-slate-600" />
-        </button>
-      </div>
 
-      {/* Item Total */}
-      <div className="text-right min-w-[100px]">
-        <p className="font-bold text-slate-900">{formatCurrency(itemTotal)}</p>
-      </div>
+        {/* Product Details */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-foreground line-clamp-1">{item.name}</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{item.category || 'Product'}</p>
+          <p className="text-sm font-semibold text-primary mt-1">
+            {formatCurrency(item.price)} <span className="text-muted-foreground font-normal text-xs">per unit</span>
+          </p>
+        </div>
 
-      {/* Remove Button */}
-      <button
-        onClick={() => onRemove(item._id)}
-        className="w-9 h-9 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center hover:bg-red-100 hover:border-red-300 transition-colors opacity-0 group-hover:opacity-100"
-      >
-        <Trash2 size={16} className="text-red-600" />
-      </button>
-    </div>
+        <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto mt-2 sm:mt-0">
+          {/* Quantity Controls */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={handleDecrease}
+              disabled={item.quantity <= 1}
+            >
+              <Minus size={14} />
+            </Button>
+            
+            <div className="w-8 text-center">
+              <span className="font-medium text-sm">{item.quantity}</span>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 rounded-lg"
+              onClick={handleIncrease}
+            >
+              <Plus size={14} />
+            </Button>
+          </div>
+
+          {/* Item Total */}
+          <div className="text-right min-w-[80px]">
+            <p className="font-bold text-foreground">{formatCurrency(itemTotal)}</p>
+          </div>
+
+          {/* Remove Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onRemove(item._id)}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

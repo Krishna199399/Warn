@@ -14,9 +14,12 @@ const allowRoles = (...roles) => (req, res, next) => {
 
 const EMPLOYEE_ROLES = ['ADMIN','STATE_HEAD','ZONAL_MANAGER','AREA_MANAGER','DO_MANAGER','ADVISOR'];
 const MANAGER_ROLES  = ['ADMIN','STATE_HEAD','ZONAL_MANAGER','AREA_MANAGER','DO_MANAGER'];
+const STOCK_ROLES    = ['WHOLESALE','MINI_STOCK'];
+const EMPLOYEE_OR_STOCK_ROLES = [...EMPLOYEE_ROLES, ...STOCK_ROLES];
 
 const employeeOnly = allowRoles(...EMPLOYEE_ROLES);
 const managerOnly  = allowRoles(...MANAGER_ROLES);
 const adminOnly    = allowRoles('ADMIN');
+const employeeOrStockOnly = allowRoles(...EMPLOYEE_OR_STOCK_ROLES);
 
-module.exports = { allowRoles, employeeOnly, managerOnly, adminOnly };
+module.exports = { allowRoles, employeeOnly, managerOnly, adminOnly, employeeOrStockOnly };

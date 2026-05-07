@@ -43,7 +43,33 @@ const registerSchema = z.object({
     parentId: z.string()
       .regex(/^[0-9a-fA-F]{24}$/, 'Invalid parent ID format')
       .optional(),
-  }),
+  }).passthrough(), // passthrough: keep any extra fields the controller might need
+});
+
+// Employee registration schema — matches what /register-employee accepts
+// Fields: name, email, phone, password, appliedRole, state, district, address
+const registerEmployeeSchema = z.object({
+  body: z.object({
+    name: z.string()
+      .min(2, 'Name must be at least 2 characters')
+      .max(100, 'Name cannot exceed 100 characters')
+      .trim(),
+    email: z.string()
+      .email('Invalid email format')
+      .toLowerCase(),
+    phone: z.string()
+      .min(10, 'Phone number must be at least 10 digits')
+      .max(15, 'Phone number too long'),
+    password: z.string()
+      .min(6, 'Password must be at least 6 characters')
+      .max(100, 'Password too long'),
+    appliedRole: z.enum([
+      'STATE_HEAD', 'ZONAL_MANAGER', 'AREA_MANAGER', 'DO_MANAGER', 'ADVISOR'
+    ], { error: 'Invalid role. Allowed roles: STATE_HEAD, ZONAL_MANAGER, AREA_MANAGER, DO_MANAGER, ADVISOR' }),
+    state:    z.string().min(1, 'State is required').max(100).optional(),
+    district: z.string().min(1, 'District is required').max(100).optional(),
+    address:  z.string().max(500).optional(),
+  }).passthrough(),
 });
 
 // Password change schema
@@ -62,5 +88,6 @@ const changePasswordSchema = z.object({
 module.exports = {
   loginSchema,
   registerSchema,
+  registerEmployeeSchema,
   changePasswordSchema,
 };

@@ -129,9 +129,9 @@ export default function EmployeeRegisterPage() {
         address: formData.address.trim(),
       });
 
-      setApplicationId(response.data.applicationId);
+      setApplicationId(response.data.data.applicationId);
       setCurrentStep(5); // Success screen
-      toast.success(response.message || 'Registration submitted successfully!');
+      toast.success(response.data.message || 'Registration submitted successfully!');
     } catch (error) {
       console.error('Registration error:', error);
       toast.error(error.response?.data?.error || 'Registration failed. Please try again.');

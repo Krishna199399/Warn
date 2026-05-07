@@ -6,14 +6,11 @@
 const { doubleCsrf } = require('csrf-csrf');
 
 // Configure CSRF protection
-const {
-  generateToken, // Generates a CSRF token
-  doubleCsrfProtection, // Middleware to validate CSRF tokens
-} = doubleCsrf({
+const doubleCsrfOptions = {
   getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
-  cookieName: '__Host-csrf-token',
+  cookieName: process.env.NODE_ENV === 'production' ? '__Host-csrf' : 'csrf-token',
   cookieOptions: {
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     path: '/',
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
@@ -26,26 +23,45 @@ const {
            req.headers['csrf-token'] || 
            req.body._csrf;
   },
-});
+};
+
+const {
+  generateToken, // Generates a CSRF token
+  doubleCsrfProtection, // Middleware to validate CSRF tokens
+} = doubleCsrf(doubleCsrfOptions);
 
 /**
  * Middleware to generate and send CSRF token
  */
 const sendCsrfToken = (req, res, next) => {
-  const token = generateToken(req, res);
-  res.locals.csrfToken = token;
-  next();
+  try {
+    const token = generateToken(req, res);
+    res.locals.csrfToken = token;
+    next();
+  } catch (error) {
+    console.error('[CSRF] Error generating token:', error);
+    next(error);
+  }
 };
 
 /**
  * Endpoint to get CSRF token
  */
 const getCsrfToken = (req, res) => {
-  const token = generateToken(req, res);
-  res.json({
-    success: true,
-    csrfToken: token,
-  });
+  try {
+    const token = generateToken(req, res);
+    res.json({
+      success: true,
+      csrfToken: token,
+    });
+  } catch (error) {
+    console.error('[CSRF] Error in getCsrfToken:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate CSRF token',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
 module.exports = {

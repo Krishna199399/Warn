@@ -90,8 +90,6 @@ export default function MySalaryPage() {
     }).catch(e => { if (e?.name !== 'AbortError') console.error(e); }).finally(() => setLoading(false));
     return () => ctrl.abort();
   }, [user]);
-
-  const filtered = commissions.filter(c => !search || c.role?.toLowerCase().includes(search.toLowerCase()) || c.level?.toLowerCase().includes(search.toLowerCase()));
   
   const monthlyBreakdown = React.useMemo(() => {
     if (timeRange === 'day') {

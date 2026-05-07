@@ -75,6 +75,9 @@ const userSchema = new mongoose.Schema({
   // Auth
   refreshToken:  { type: String, default: null },
 
+  // Role History
+  roleHistory: [roleHistorySchema],
+
   // KYC Details
   kyc: {
     // Personal Information

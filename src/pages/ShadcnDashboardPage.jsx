@@ -258,6 +258,7 @@ export default function ShadcnDashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">{welcome}, {user?.name}</h1>
           <p className="text-muted-foreground">
             {ROLE_LABELS[user?.role]} · {user?.region}
+            {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
           </p>
         </div>
         {quickActions.length > 0 && (

@@ -258,6 +258,7 @@ export default function ZonalManagerDashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Zonal Manager · {user?.state} · {user?.region}
+            {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
           </p>
         </div>
       </div>

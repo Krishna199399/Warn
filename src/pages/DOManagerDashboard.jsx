@@ -186,6 +186,7 @@ export default function DOManagerDashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">
             DO Manager · {user?.state || 'State'} · {user?.region || 'Zone'} · {user?.area || 'Area'}
+            {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
           </p>
         </div>
       </div>

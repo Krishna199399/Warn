@@ -273,7 +273,10 @@ export default function WholesaleDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{welcome()}, {user?.name}</h1>
-          <p className="text-muted-foreground mt-1">{ROLE_LABELS[user?.role]}{user?.region ? ` · ${user.region}` : ''}</p>
+          <p className="text-muted-foreground mt-1">
+            {ROLE_LABELS[user?.role]}{user?.region ? ` · ${user.region}` : ''}
+            {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
+          </p>
         </div>
       </div>
 

@@ -202,6 +202,7 @@ export default function StateHeadDashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">
             State Head · {user?.state || 'State'}
+            {user?.employeeCode && ` · Code: ${user.employeeCode}`}
           </p>
         </div>
       </div>

@@ -176,7 +176,7 @@ export default function SettingsPage() {
                   <div>
                     <CardTitle className="text-base">{user?.name}</CardTitle>
                     <CardDescription>{ROLE_LABELS[user?.role]} · {user?.region}</CardDescription>
-                    {user?.advisorCode && <p className="text-xs font-mono text-primary mt-0.5">Code: {user.advisorCode}</p>}
+                    {user?.employeeCode && <p className="text-xs font-mono text-primary mt-0.5">Code: {user.employeeCode}</p>}
                   </div>
                 </div>
               </CardHeader>

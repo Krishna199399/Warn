@@ -351,6 +351,7 @@ export default function AreaManagerDashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">
             Area Manager · {user?.region || 'Region'}
+            {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
           </p>
         </div>
       </div>

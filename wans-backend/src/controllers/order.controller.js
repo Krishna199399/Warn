@@ -1047,7 +1047,7 @@ const createPOSSale = async (req, res, next) => {
             // Update reward progress for each user
             for (const userIdStr of rvUsers) {
               try {
-                const userId = mongoose.Types.ObjectId(userIdStr);
+                const userId = new mongoose.Types.ObjectId(userIdStr);
                 const user = await User.findById(userId);
                 if (!user) continue;
                 

@@ -54,8 +54,29 @@ const verifyPaymentSchema = z.object({
   }),
 });
 
+// POS Sale schema (Mini Stock → Customer)
+const posOrderSchema = z.object({
+  body: z.object({
+    farmerName: z.string().min(1, 'Customer name is required'),
+    farmerPhone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits'),
+    farmerLocation: z.string().min(1, 'Location is required'),
+    advisorCode: z.string()
+      .regex(/^[A-Z]{3}-\d{4}-\d{4}$/, 'Invalid advisor code format')
+      .optional(),
+    discount: z.number().min(0).max(100).optional(),
+    paymentMethod: z.enum(['CASH', 'UPI', 'CARD', 'ONLINE']),
+    items: z.array(
+      z.object({
+        productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product ID'),
+        quantity: z.number().int().positive().max(100000),
+      })
+    ).min(1, 'At least one item is required'),
+  }),
+});
+
 module.exports = {
   createOrderSchema,
   updateOrderStatusSchema,
   verifyPaymentSchema,
+  posOrderSchema,
 };

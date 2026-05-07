@@ -4,7 +4,7 @@ const ctrl    = require('../controllers/order.controller');
 const { protect } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 const { authorizeOrderAccess } = require('../middleware/authorization.middleware');
-const { createOrderSchema, updateOrderStatusSchema, verifyPaymentSchema } = require('../schemas/order.schema');
+const { createOrderSchema, updateOrderStatusSchema, verifyPaymentSchema, posOrderSchema } = require('../schemas/order.schema');
 
 // Role-specific list endpoints (must be before /:id)
 router.get('/admin',        protect, ctrl.getAdminOrders);
@@ -17,7 +17,7 @@ router.get('/my',           protect, ctrl.getMyOrders);
 // 🔒 SECURITY: Validation + Authorization applied
 router.post('/',                    protect, validate(createOrderSchema), ctrl.createOrder);
 router.post('/customer',            protect, validate(createOrderSchema), ctrl.createCustomerOrder); // New: Customer orders from website
-router.post('/pos-sale',            protect, validate(createOrderSchema), ctrl.createPOSSale);
+router.post('/pos-sale',            protect, validate(posOrderSchema), ctrl.createPOSSale);
 router.get('/',                     protect, ctrl.getOrders);
 router.get('/:id',                  protect, authorizeOrderAccess, ctrl.getOrder);
 router.put('/:id/status',           protect, authorizeOrderAccess, validate(updateOrderStatusSchema), ctrl.updateOrderStatus);

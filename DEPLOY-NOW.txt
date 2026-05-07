@@ -1,0 +1,18 @@
+DEPLOY TO VPS NOW
+==================
+
+The fixes are already committed and pushed to your repository.
+
+Run these commands on your VPS:
+
+ssh root@srv1642115
+cd /var/www/Warn/wans-backend
+git pull origin main
+pm2 restart project-backend --update-env
+pm2 logs project-backend --lines 30
+
+This will fix:
+1. KYC page crash (Cast to ObjectId error)
+2. Wholesale checkout validation error
+
+After deployment, the KYC error should disappear from logs.

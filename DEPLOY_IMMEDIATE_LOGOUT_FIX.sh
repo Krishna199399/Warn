@@ -20,13 +20,15 @@ else
 fi
 echo ""
 
-echo "Step 2: Installing dependencies (if needed)..."
-npm install --production
+echo "Step 2: Installing dependencies..."
+# Remove --production flag to install dev dependencies (vite is a dev dependency)
+npm install
 
 if [ $? -eq 0 ]; then
     echo "✅ Dependencies installed"
 else
-    echo "⚠️  Dependency installation had issues (may be okay)"
+    echo "❌ Dependency installation failed!"
+    exit 1
 fi
 echo ""
 

@@ -1,0 +1,63 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              🔧 FIX BUILD ERROR - RUN THIS NOW 🔧           ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+PROBLEM:
+--------
+❌ vite: not found
+❌ Build failed
+
+ROOT CAUSE:
+-----------
+npm install --production skips dev dependencies
+vite is a dev dependency (needed for building)
+
+SOLUTION:
+---------
+Install ALL dependencies (including dev dependencies)
+
+═══════════════════════════════════════════════════════════════
+
+RUN THIS COMMAND NOW:
+---------------------
+
+cd /var/www/Warn && bash QUICK_FIX_BUILD.sh
+
+═══════════════════════════════════════════════════════════════
+
+OR MANUALLY:
+------------
+
+cd /var/www/Warn
+
+npm install
+
+npm run build
+
+systemctl reload nginx
+
+═══════════════════════════════════════════════════════════════
+
+WHAT THIS DOES:
+---------------
+1. ✅ Installs ALL dependencies (including vite)
+2. ✅ Builds the frontend
+3. ✅ Reloads Nginx
+4. ✅ Ready to test!
+
+═══════════════════════════════════════════════════════════════
+
+AFTER BUILD SUCCEEDS:
+---------------------
+1. Clear browser cache (Ctrl+Shift+Delete)
+2. Login: https://warnamayii.cloud/login
+3. Immediately refresh (F5)
+4. ✅ Should stay logged in!
+
+═══════════════════════════════════════════════════════════════
+
+TIME: 3-5 minutes (npm install takes time)
+
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,87 @@
+================================================================================
+DEPLOYMENT SUMMARY - Employee Code Display Fix
+================================================================================
+
+ISSUE FIXED:
+  Advisor/employee codes were not displaying on dashboard pages
+
+ROOT CAUSE:
+  System migrated from 'advisorCode' to 'employeeCode' field, but dashboard
+  pages were still checking the old field name
+
+FILES CHANGED:
+  ✅ src/pages/AdminDashboard.jsx
+  ✅ src/pages/StateHeadDashboard.jsx
+  ✅ src/pages/SettingsPage.jsx
+  ✅ src/pages/WholesaleDashboard.jsx
+  ✅ src/pages/ShadcnDashboardPage.jsx
+  ✅ src/pages/AreaManagerDashboard.jsx
+  ✅ src/pages/DOManagerDashboard.jsx
+  ✅ src/pages/ZonalManagerDashboard.jsx
+
+COMMITS:
+  1. 206f143 - fix: Display employeeCode instead of deprecated advisorCode
+  2. 8378fa3 - docs: Add deployment script and documentation
+  3. 46f2125 - docs: Add comprehensive VPS deployment guide
+
+PUSHED TO:
+  ✅ GitHub repository (main branch)
+
+================================================================================
+NEXT STEPS - DEPLOY TO VPS
+================================================================================
+
+1. SSH into VPS:
+   ssh root@srv1642115
+
+2. Navigate to frontend:
+   cd /var/www/Warn/wans-frontend
+
+3. Pull latest changes:
+   git pull origin main
+
+4. Build frontend:
+   npm run build
+
+5. Verify deployment:
+   - Login as advisor/employee
+   - Check dashboard shows: "Role · Location · Code: XXXXX"
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+After deployment, verify these roles display employee codes:
+
+  [ ] Advisor Dashboard       → "Advisor · {location} · Code: {code}"
+  [ ] Area Manager Dashboard  → "Area Manager · {area} · Code: {code}"
+  [ ] DO Manager Dashboard    → "DO Manager · {district} · Code: {code}"
+  [ ] Zonal Manager Dashboard → "Zonal Manager · {zone} · Code: {code}"
+  [ ] State Head Dashboard    → "State Head · {state} · Code: {code}"
+  [ ] Admin Dashboard         → "Super Admin · Full System Control · Code: {code}"
+  [ ] Settings Page           → Shows employeeCode in profile section
+
+================================================================================
+DOCUMENTATION
+================================================================================
+
+  📄 EMPLOYEECODE-FIX.md       - Detailed fix documentation
+  📄 VPS-DEPLOYMENT-GUIDE.md   - Step-by-step deployment guide
+  📄 deploy-employeeCode-fix.sh - Automated deployment script
+
+================================================================================
+SUPPORT
+================================================================================
+
+If issues occur:
+  1. Check browser console (F12) for errors
+  2. Check nginx logs: tail -50 /var/log/nginx/error.log
+  3. Check backend logs: pm2 logs project-backend --lines 50
+  4. Verify backend running: pm2 status
+
+Rollback if needed:
+  git reset --hard e130a7d
+  npm run build
+  systemctl reload nginx
+
+================================================================================

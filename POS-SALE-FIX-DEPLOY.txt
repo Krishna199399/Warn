@@ -1,0 +1,91 @@
+═══════════════════════════════════════════════════════════════════════════════
+  POS SALE VALIDATION FIX - VPS DEPLOYMENT COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+ISSUE: Backend crashing with "posOrderSchema is not defined"
+ROOT CAUSE: VPS backend doesn't have the latest schema file from GitHub
+SOLUTION: Pull latest code and restart backend
+
+═══════════════════════════════════════════════════════════════════════════════
+  COPY-PASTE THESE COMMANDS INTO YOUR VPS TERMINAL:
+═══════════════════════════════════════════════════════════════════════════════
+
+# 1. Navigate to backend directory
+cd /var/www/Warn/wans-backend
+
+# 2. Pull latest code from GitHub (force sync)
+git fetch origin
+git reset --hard origin/main
+
+# 3. Verify posOrderSchema exists in schema file
+grep -n "posOrderSchema" src/schemas/order.schema.js
+
+# 4. Verify posOrderSchema is imported in routes
+grep -n "posOrderSchema" src/routes/order.routes.js
+
+# 5. Restart backend server
+pm2 restart project-backend --update-env
+
+# 6. Wait 3 seconds for server to start
+sleep 3
+
+# 7. Check server logs (should show no errors)
+pm2 logs project-backend --lines 20 --nostream
+
+═══════════════════════════════════════════════════════════════════════════════
+  WHAT TO EXPECT:
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Step 3 should show:
+   60:const posOrderSchema = z.object({
+   82:  posOrderSchema,
+
+✅ Step 4 should show:
+   7:const { createOrderSchema, updateOrderStatusSchema, verifyPaymentSchema, posOrderSchema } = require('../schemas/order.schema');
+   20:router.post('/pos-sale',            protect, validate(posOrderSchema), ctrl.createPOSSale);
+
+✅ Step 7 should show:
+   ✅ MongoDB connected: ac-46luk57-shard-00-00.cchglyw.mongodb.net
+   ✅ MongoDB Atlas — transactions enabled
+   ✅ Payout scheduler registered (daily 6AM IST)
+   🚀 WANS API running on port 5000 [production]
+
+❌ If you see "posOrderSchema is not defined" error, the git pull failed.
+   Try: git stash && git pull origin main
+
+═══════════════════════════════════════════════════════════════════════════════
+  AFTER DEPLOYMENT - TEST POS SALE:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://warnamayii.cloud/pos
+2. Login as Mini Stock user
+3. Fill in customer details:
+   - Name: Test Customer
+   - Phone: 9876543210
+   - Location: Test Location
+   - Advisor Code: ADV-2026-0001 (optional)
+4. Add products to cart
+5. Select payment method: CASH
+6. Click "Complete Sale"
+
+✅ Expected: Sale completes successfully
+❌ If error: Check browser console and send screenshot
+
+═══════════════════════════════════════════════════════════════════════════════
+  WHAT WAS FIXED:
+═══════════════════════════════════════════════════════════════════════════════
+
+BEFORE:
+- POS route was using createOrderSchema (wrong schema)
+- createOrderSchema expects: productId, quantity, buyerType, deliveryAddress
+- POS frontend sends: farmerName, farmerPhone, items[], paymentMethod
+
+AFTER:
+- Created posOrderSchema specifically for POS sales
+- Validates: farmerName, farmerPhone, farmerLocation, items[], paymentMethod
+- Route now uses: validate(posOrderSchema) instead of validate(createOrderSchema)
+
+ROOT CAUSE FIXED: ✅ Schema mismatch between frontend and backend
+PERMANENT FIX: ✅ Dedicated schema for POS sales
+
+═══════════════════════════════════════════════════════════════════════════════

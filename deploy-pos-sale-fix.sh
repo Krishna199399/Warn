@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deploy POS Sale Validation Fix to VPS
-# This fixes the 400 Bad Request error in POS sales
+# This script pulls the latest backend code with posOrderSchema
 
 echo "🚀 Deploying POS Sale Validation Fix..."
 echo ""
@@ -13,25 +13,45 @@ echo "📥 Pulling latest code from GitHub..."
 git fetch origin
 git reset --hard origin/main
 
+# Verify the schema file has posOrderSchema
+echo ""
+echo "✅ Verifying posOrderSchema exists..."
+if grep -q "posOrderSchema" src/schemas/order.schema.js; then
+    echo "   ✓ posOrderSchema found in schema file"
+else
+    echo "   ✗ ERROR: posOrderSchema not found!"
+    exit 1
+fi
+
+# Verify the route file imports posOrderSchema
+echo ""
+echo "✅ Verifying route imports posOrderSchema..."
+if grep -q "posOrderSchema" src/routes/order.routes.js; then
+    echo "   ✓ posOrderSchema imported in routes"
+else
+    echo "   ✗ ERROR: posOrderSchema not imported!"
+    exit 1
+fi
+
 # Restart backend with PM2
+echo ""
 echo "🔄 Restarting backend server..."
 pm2 restart project-backend --update-env
 
 # Wait for server to start
+echo ""
 echo "⏳ Waiting for server to start..."
 sleep 3
 
-# Check server status
+# Check if server is running
 echo ""
-echo "📊 Server Status:"
+echo "🔍 Checking server status..."
 pm2 list | grep project-backend
-
-# Show recent logs
-echo ""
-echo "📋 Recent Logs (last 20 lines):"
-pm2 logs project-backend --lines 20 --nostream
 
 echo ""
 echo "✅ Deployment complete!"
 echo ""
-echo "🧪 Test POS sale in browser to verify the fix"
+echo "📋 Next steps:"
+echo "   1. Check logs: pm2 logs project-backend --lines 20 --nostream"
+echo "   2. Test POS sale in browser"
+echo ""

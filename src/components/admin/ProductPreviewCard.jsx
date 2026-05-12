@@ -11,26 +11,25 @@ const CATEGORY_COLORS = {
 
 /**
  * ProductPreviewCard — live product preview panel
- * Props: name, category, actualPrice, mrp, price, unit, unitQuantity, brand, tags (array), image (File|null), previewUrl (string|null), description, taxRate
+ * Props: name, category, mrp, price, unit, unitQuantity, brand, tags (array), image (File|null), previewUrl (string|null), description, taxRate
  */
-export default function ProductPreviewCard({ name, category, actualPrice, mrp, price, unit, unitQuantity, brand, tags = [], image, previewUrl, description, taxRate = 18 }) {
+export default function ProductPreviewCard({ name, category, mrp, price, unit, unitQuantity, brand, tags = [], image, previewUrl, description, taxRate = 18 }) {
   const imgSrc = image
     ? URL.createObjectURL(image)
     : previewUrl || null;
 
   const displayName        = name     || 'Product Name';
   const displayCategory    = category || 'Category';
-  const displayActualPrice = actualPrice ? parseFloat(actualPrice) : 0;
   const displayMrp         = mrp ? parseFloat(mrp) : 0;
   const displayPrice       = price ? parseFloat(price) : 0;
   const displayUnit        = unitQuantity ? `${unitQuantity} ${unit || 'unit'}` : (unit || 'unit');
   const catColor           = CATEGORY_COLORS[category] || 'bg-slate-100 text-slate-600';
   
   // Tax calculation breakdown
-  // Base Price (price or mrp) is the price WITHOUT tax
+  // Base Price (price) is the price WITHOUT tax
   // Final Price = Base Price + Tax
   const taxRateNum = parseFloat(taxRate) || 0;
-  const basePrice = displayPrice > 0 ? displayPrice : displayMrp;
+  const basePrice = displayPrice > 0 ? displayPrice : 0;
   const taxAmount = basePrice > 0 ? basePrice * (taxRateNum / 100) : 0;
   const finalPrice = basePrice + taxAmount;
 
@@ -102,7 +101,7 @@ export default function ProductPreviewCard({ name, category, actualPrice, mrp, p
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-600">MRP Price</span>
                 <span className="font-semibold text-slate-700">
-                  ₹{displayActualPrice > 0 ? displayActualPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  ₹{displayMrp > 0 ? displayMrp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">

@@ -14,7 +14,7 @@ const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 't
 
 const INITIAL_FORM = {
   name: '', sku: '', category: '', unit: UNITS[0], unitQuantity: '',
-  actualPrice: '', mrp: '', price: '', rp: '', sv: '', rv: '', iv: '',
+  mrp: '', price: '', rp: '', sv: '', rv: '', iv: '',
   wholesaleCommission: '', miniStockCommission: '',
   description: '', brand: '', weight: '', tagsInput: '',
   taxRate: '18', // Default 18% tax
@@ -103,7 +103,7 @@ export default function CreateProductPage() {
     setForm(f => {
       const updated = { ...f, [key]: val };
       
-      // Auto-fill Base Price from Sell Price (for preview)
+      // Auto-fill Sell Price from MRP (for preview)
       if (key === 'mrp') {
         const numVal = parseFloat(val);
         updated.price = (!isNaN(numVal) && numVal >= 0) ? val : '';  // Only set if valid number
@@ -120,10 +120,10 @@ export default function CreateProductPage() {
     if (!form.name.trim())     e.name  = 'Product name is required';
     if (!form.sku.trim())      e.sku   = 'SKU is required';
     if (!form.category)        e.category = 'Select a category';
-    if (!form.actualPrice || isNaN(parseFloat(form.actualPrice)) || parseFloat(form.actualPrice) < 0)
-                               e.actualPrice = 'Enter a valid MRP price (≥ 0)';
     if (!form.mrp || isNaN(parseFloat(form.mrp)) || parseFloat(form.mrp) < 0)
-                               e.mrp = 'Enter a valid sell price (≥ 0)';
+                               e.mrp = 'Enter a valid MRP price (≥ 0)';
+    if (!form.price || isNaN(parseFloat(form.price)) || parseFloat(form.price) < 0)
+                               e.price = 'Enter a valid sell price (≥ 0)';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -141,10 +141,9 @@ export default function CreateProductPage() {
       fd.append('category',    form.category);
       fd.append('unit',        form.unit);
       if (form.unitQuantity) fd.append('unitQuantity', form.unitQuantity);
-      fd.append('actualPrice', form.actualPrice);
-      // price field is auto-filled by backend from mrp
-      fd.append('taxRate',     form.taxRate || '18');
       if (form.mrp)  fd.append('mrp', form.mrp);
+      if (form.price) fd.append('price', form.price);
+      fd.append('taxRate',     form.taxRate || '18');
       if (form.rp)   fd.append('rp',  form.rp);
       if (form.sv)   fd.append('sv',  form.sv);
       if (form.rv)   fd.append('rv',  form.rv);
@@ -201,7 +200,6 @@ export default function CreateProductPage() {
             <ProductPreviewCard
               name={form.name}
               category={form.category}
-              actualPrice={form.actualPrice}
               mrp={form.mrp}
               price={form.price}
               unit={form.unit}
@@ -321,23 +319,7 @@ export default function CreateProductPage() {
                 </Field>
               </div>
 
-              <Field label="MRP Price (₹)" hint="Maximum Retail Price (printed on package)" required error={errors.actualPrice}>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
-                  <input
-                    id="prod-actual-price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.actualPrice}
-                    onChange={e => set('actualPrice', e.target.value)}
-                    placeholder="0.00"
-                    className={`input-field pl-7 ${errors.actualPrice ? 'border-red-400 focus:border-red-400' : ''}`}
-                  />
-                </div>
-              </Field>
-
-              <Field label="Sell Price (₹)" hint="Actual selling price to customers" required error={errors.mrp}>
+              <Field label="MRP Price (₹)" hint="Maximum Retail Price (printed on package)" required error={errors.mrp}>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
                   <input
@@ -349,6 +331,22 @@ export default function CreateProductPage() {
                     onChange={e => set('mrp', e.target.value)}
                     placeholder="0.00"
                     className={`input-field pl-7 ${errors.mrp ? 'border-red-400 focus:border-red-400' : ''}`}
+                  />
+                </div>
+              </Field>
+
+              <Field label="Sell Price (₹)" hint="Actual selling price to customers" required error={errors.price}>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
+                  <input
+                    id="prod-price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.price}
+                    onChange={e => set('price', e.target.value)}
+                    placeholder="0.00"
+                    className={`input-field pl-7 ${errors.price ? 'border-red-400 focus:border-red-400' : ''}`}
                   />
                 </div>
               </Field>

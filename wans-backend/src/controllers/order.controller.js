@@ -650,14 +650,11 @@ const confirmDelivery = async (req, res, next) => {
 
       // 5. Record buyer commission (Wholesale/Mini Stock commission)
       if (order.buyerCommission && order.buyerCommission.type !== 'NONE' && !order.buyerCommission.recorded) {
-        const commType = order.buyerCommission.type === 'WHOLESALE_COMMISSION' ? 'RP' : 
-                         order.buyerCommission.type === 'MINISTOCK_COMMISSION' ? 'RP' : 'RP';
-        
         await Commission.create([{
           userId: order.buyerId,
           orderId: order._id,
           role: order.buyerType,
-          type: commType,
+          type: order.buyerCommission.type, // Use the actual commission type (WHOLESALE_COMMISSION or MINISTOCK_COMMISSION)
           amount: order.buyerCommission.totalAmount,
           percentage: 100,
           poolAmount: order.buyerCommission.totalAmount,

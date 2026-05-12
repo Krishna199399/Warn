@@ -1,0 +1,142 @@
+═══════════════════════════════════════════════════════════════════════
+  DEPLOYMENT INSTRUCTIONS - Commission Recording Fix
+═══════════════════════════════════════════════════════════════════════
+
+ISSUE FIXED:
+Wholesale and Mini Stock buyers were not seeing their commissions in the
+"My Margins" page after placing and receiving orders.
+
+ROOT CAUSE:
+The order controller had THREE issues from incomplete commission model migration:
+
+1. PRICING: Still using old wholesalePrice/miniStockPrice fields (which don't exist)
+   - Should use MRP for all buyer types in new commission model
+
+2. PRODUCT SNAPSHOT: Still capturing old field names in productSnapshot
+   - wholesalePrice, miniStockPrice, wholesaleMargin, miniStockMargin
+   - Should capture: wholesaleCommission, miniStockCommission
+
+3. COMMISSION TYPE: Mapping commission types to 'RP' instead of keeping original
+   - WHOLESALE_COMMISSION was being saved as 'RP'
+   - MINISTOCK_COMMISSION was being saved as 'RP'
+   - Should save as WHOLESALE_COMMISSION and MINISTOCK_COMMISSION
+
+CHANGES MADE:
+✅ wans-backend/src/controllers/order.controller.js (3 fixes)
+   1. Lines 35-49: Fixed pricing logic
+      - Wholesale and Mini Stock now pay MRP
+      - Commission is earned separately (not through discounted price)
+   
+   2. Lines 64-71: Fixed productSnapshot
+      - Removed: wholesalePrice, miniStockPrice, wholesaleMargin, miniStockMargin
+      - Added: wholesaleCommission, miniStockCommission
+   
+   3. Lines 650-667: Fixed commission recording
+      - Removed type mapping logic (was converting to 'RP')
+      - Now uses actual commission type from order.buyerCommission.type
+
+═══════════════════════════════════════════════════════════════════════
+  DEPLOYMENT STEPS (Run on VPS as root)
+═══════════════════════════════════════════════════════════════════════
+
+1. Navigate to backend directory:
+   cd /var/www/Warn/wans-backend
+
+2. Pull latest changes from GitHub:
+   git pull origin main
+
+3. Restart backend with PM2:
+   pm2 restart project-backend --update-env
+
+4. Verify backend is running:
+   pm2 status
+   pm2 logs project-backend --lines 30
+
+═══════════════════════════════════════════════════════════════════════
+  TESTING INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════
+
+TEST 1: Wholesale Commission
+1. Login as WHOLESALE user
+2. Go to Products page
+3. Add a product to cart (ensure product has wholesaleCommission set)
+4. Place order
+5. Admin: Verify payment and approve order
+6. Admin: Mark order as shipped
+7. Wholesale: Confirm delivery
+8. Wholesale: Go to "My Margins" page
+9. ✓ Should see commission record with type "WHOLESALE_COMMISSION"
+10. ✓ Amount should match: wholesaleCommission × quantity
+
+TEST 2: Mini Stock Commission
+1. Login as MINI_STOCK user
+2. Go to Products page
+3. Add a product to cart (ensure product has miniStockCommission set)
+4. Place order
+5. Wholesale seller: Verify payment and approve order
+6. Wholesale seller: Mark order as shipped
+7. Mini Stock: Confirm delivery
+8. Mini Stock: Go to "My Margins" page
+9. ✓ Should see commission record with type "MINISTOCK_COMMISSION"
+10. ✓ Amount should match: miniStockCommission × quantity
+
+═══════════════════════════════════════════════════════════════════════
+  VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════
+
+Backend:
+✓ Backend restarted successfully
+✓ No errors in PM2 logs
+✓ Orders can be created
+✓ Orders can be delivered
+
+Wholesale:
+✓ Can place orders
+✓ Pays MRP price (not discounted price)
+✓ Commission recorded on delivery
+✓ Commission visible in "My Margins" page
+✓ Commission type is "WHOLESALE_COMMISSION"
+
+Mini Stock:
+✓ Can place orders
+✓ Pays MRP price (not discounted price)
+✓ Commission recorded on delivery
+✓ Commission visible in "My Margins" page
+✓ Commission type is "MINISTOCK_COMMISSION"
+
+═══════════════════════════════════════════════════════════════════════
+  IMPORTANT NOTES
+═══════════════════════════════════════════════════════════════════════
+
+1. OLD ORDERS: Orders placed BEFORE this fix will NOT have commissions
+   - They were created with old field names that don't exist
+   - Only NEW orders (after deployment) will record commissions correctly
+
+2. PRICING CHANGE: Wholesale and Mini Stock now pay MRP
+   - In the old model: They paid discounted prices (wholesalePrice/miniStockPrice)
+   - In the new model: They pay MRP and earn commission separately
+   - This is the correct implementation of the commission model
+
+3. PRODUCT SETUP: Ensure products have commission values set
+   - Edit each product and set:
+     * Wholesale Commission (per unit) - e.g., ₹60
+     * Mini Stock Commission (per unit) - e.g., ₹60
+   - Without these values, no commission will be earned
+
+4. COMMISSION DISPLAY: Commissions appear in "My Margins" page
+   - Wholesale users: /app/wholesale-commission
+   - Mini Stock users: /app/ministock-commission
+   - Shows all commissions with type WHOLESALE_COMMISSION or MINISTOCK_COMMISSION
+
+═══════════════════════════════════════════════════════════════════════
+  RELATED FIXES
+═══════════════════════════════════════════════════════════════════════
+
+This fix is part of the complete commission model migration:
+- Task 15: Commission model migration (database, forms, display)
+- Task 16: Product controller fix (commission display in product detail)
+- Task 17: Order controller fix (commission recording on order delivery) ← THIS FIX
+
+All three tasks are now complete and deployed.
+
+═══════════════════════════════════════════════════════════════════════

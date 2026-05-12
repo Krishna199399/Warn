@@ -18,7 +18,7 @@ function parseTagsFromBody(raw) {
 }
 
 // Fields visible to admins only
-const ADMIN_ONLY_FIELDS = ['rp', 'sv', 'rv', 'iv', 'wholesalePrice', 'miniStockPrice', 'wholesaleMargin', 'miniStockMargin'];
+const ADMIN_ONLY_FIELDS = ['rp', 'sv', 'rv', 'iv', 'wholesaleCommission', 'miniStockCommission'];
 
 function stripSensitiveFields(productObj, isAdmin) {
   if (isAdmin) return productObj;
@@ -92,8 +92,8 @@ exports.createProduct = async (req, res) => {
       sv:          req.body.sv   ? parseFloat(req.body.sv)   : 0,
       rv:          req.body.rv   ? parseFloat(req.body.rv)   : 0,
       iv:          req.body.iv   ? parseFloat(req.body.iv)   : 0,
-      wholesalePrice: req.body.wholesalePrice ? parseFloat(req.body.wholesalePrice) : 0,
-      miniStockPrice: req.body.miniStockPrice ? parseFloat(req.body.miniStockPrice) : 0,
+      wholesaleCommission: req.body.wholesaleCommission ? parseFloat(req.body.wholesaleCommission) : 0,
+      miniStockCommission: req.body.miniStockCommission ? parseFloat(req.body.miniStockCommission) : 0,
       description: req.body.description || '',
       brand:       req.body.brand       || '',
       weight:      req.body.weight      || '',
@@ -144,8 +144,8 @@ exports.updateProduct = async (req, res) => {
       sv:          req.body.sv  != null ? parseFloat(req.body.sv)  : product.sv,
       rv:          req.body.rv  != null ? parseFloat(req.body.rv)  : product.rv,
       iv:          req.body.iv  != null ? parseFloat(req.body.iv)  : product.iv,
-      wholesalePrice: req.body.wholesalePrice != null ? parseFloat(req.body.wholesalePrice) : product.wholesalePrice,
-      miniStockPrice: req.body.miniStockPrice != null ? parseFloat(req.body.miniStockPrice) : product.miniStockPrice,
+      wholesaleCommission: req.body.wholesaleCommission != null ? parseFloat(req.body.wholesaleCommission) : product.wholesaleCommission,
+      miniStockCommission: req.body.miniStockCommission != null ? parseFloat(req.body.miniStockCommission) : product.miniStockCommission,
       description: req.body.description ?? product.description,
       brand:       req.body.brand       ?? product.brand,
       weight:      req.body.weight      ?? product.weight,

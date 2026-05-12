@@ -18,11 +18,9 @@ const productSchema = new mongoose.Schema({
   priceWithTax:       { type: Number, default: 0, min: 0 },  // price + tax
   actualPriceWithTax: { type: Number, default: 0, min: 0 },  // actualPrice + tax
   
-  // Wholesale & Mini-Stock Pricing
-  wholesalePrice:   { type: Number, default: 0, min: 0 },
-  miniStockPrice:   { type: Number, default: 0, min: 0 },
-  wholesaleMargin:  { type: Number, default: 0, min: 0 },
-  miniStockMargin:  { type: Number, default: 0, min: 0 },
+  // Wholesale & Mini-Stock Commission (Direct amounts set by admin)
+  wholesaleCommission: { type: Number, default: 0, min: 0 },  // Commission per unit for wholesale
+  miniStockCommission: { type: Number, default: 0, min: 0 },  // Commission per unit for mini stock
   
   stock:       { type: Number, default: 0, min: 0 },
   unit:        { type: String, default: 'unit' },
@@ -59,14 +57,6 @@ productSchema.pre('save', async function () {
   
   this.priceWithTax = Math.round(this.price * taxMultiplier * 100) / 100;
   this.actualPriceWithTax = Math.round(this.actualPrice * taxMultiplier * 100) / 100;
-  
-  // Auto-calculate margins (based on Selling Price, not MRP)
-  if (this.mrp && this.wholesalePrice) {
-    this.wholesaleMargin = this.mrp - this.wholesalePrice;
-  }
-  if (this.mrp && this.miniStockPrice) {
-    this.miniStockMargin = this.mrp - this.miniStockPrice;
-  }
   
   // Update stock status
   if (this.stock === 0)       this.status = 'Out of Stock';

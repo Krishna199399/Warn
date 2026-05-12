@@ -15,7 +15,7 @@ const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 't
 const INITIAL_FORM = {
   name: '', sku: '', category: '', unit: UNITS[0], unitQuantity: '',
   actualPrice: '', mrp: '', price: '', rp: '', sv: '', rv: '', iv: '',
-  wholesalePrice: '', miniStockPrice: '',
+  wholesaleCommission: '', miniStockCommission: '',
   description: '', brand: '', weight: '', tagsInput: '',
   taxRate: '18', // Default 18% tax
   ingredients: '', howToUse: '', benefits: '', dosage: '', disclaimer: '',
@@ -149,8 +149,8 @@ export default function CreateProductPage() {
       if (form.sv)   fd.append('sv',  form.sv);
       if (form.rv)   fd.append('rv',  form.rv);
       if (form.iv)   fd.append('iv',  form.iv);
-      if (form.wholesalePrice) fd.append('wholesalePrice', form.wholesalePrice);
-      if (form.miniStockPrice) fd.append('miniStockPrice', form.miniStockPrice);
+      if (form.wholesaleCommission) fd.append('wholesaleCommission', form.wholesaleCommission);
+      if (form.miniStockCommission) fd.append('miniStockCommission', form.miniStockCommission);
       fd.append('description', form.description.trim());
       fd.append('ingredients', form.ingredients.trim());
       fd.append('howToUse', form.howToUse.trim());
@@ -440,8 +440,8 @@ export default function CreateProductPage() {
 
                 {[  
                   { key: 'price', label: 'Base Price',      hint: 'Base selling price (before discount)' },
-                  { key: 'wholesalePrice', label: 'Wholesale Price', hint: 'Price for Wholesale buyers' },
-                  { key: 'miniStockPrice', label: 'Mini Stock Price', hint: 'Price for Mini Stock buyers' },
+                  { key: 'wholesaleCommission', label: 'Wholesale Commission (per unit)', hint: 'Commission amount for Wholesale buyers' },
+                  { key: 'miniStockCommission', label: 'Mini Stock Commission (per unit)', hint: 'Commission amount for Mini Stock buyers' },
                   { key: 'rp',  label: 'RP – Retail Point',  hint: 'Price at retail point' },
                   { key: 'sv',  label: 'SV – Salary Value',  hint: 'Salary value component' },
                   { key: 'rv',  label: 'RV – Rewards Value', hint: 'Rewards value component' },

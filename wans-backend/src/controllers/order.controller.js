@@ -79,18 +79,18 @@ const createOrder = async (req, res, next) => {
       recorded: false,
     };
 
-    if (buyerType === 'WHOLESALE' && productSnapshot.wholesaleMargin > 0) {
+    if (buyerType === 'WHOLESALE' && productSnapshot.wholesaleCommission > 0) {
       buyerCommission = {
-        type: 'WHOLESALE_MARGIN',
-        amountPerUnit: productSnapshot.wholesaleMargin,
-        totalAmount: productSnapshot.wholesaleMargin * qty,
+        type: 'WHOLESALE_COMMISSION',
+        amountPerUnit: productSnapshot.wholesaleCommission,
+        totalAmount: productSnapshot.wholesaleCommission * qty,
         recorded: false,
       };
-    } else if (buyerType === 'MINI_STOCK' && productSnapshot.miniStockMargin > 0) {
+    } else if (buyerType === 'MINI_STOCK' && productSnapshot.miniStockCommission > 0) {
       buyerCommission = {
-        type: 'MINISTOCK_MARGIN',
-        amountPerUnit: productSnapshot.miniStockMargin,
-        totalAmount: productSnapshot.miniStockMargin * qty,
+        type: 'MINISTOCK_COMMISSION',
+        amountPerUnit: productSnapshot.miniStockCommission,
+        totalAmount: productSnapshot.miniStockCommission * qty,
         recorded: false,
       };
     }
@@ -653,10 +653,10 @@ const confirmDelivery = async (req, res, next) => {
         );
       }
 
-      // 5. Record buyer commission (Wholesale/Mini Stock margin)
+      // 5. Record buyer commission (Wholesale/Mini Stock commission)
       if (order.buyerCommission && order.buyerCommission.type !== 'NONE' && !order.buyerCommission.recorded) {
-        const commType = order.buyerCommission.type === 'WHOLESALE_MARGIN' ? 'RP' : 
-                         order.buyerCommission.type === 'MINISTOCK_MARGIN' ? 'RP' : 'RP';
+        const commType = order.buyerCommission.type === 'WHOLESALE_COMMISSION' ? 'RP' : 
+                         order.buyerCommission.type === 'MINISTOCK_COMMISSION' ? 'RP' : 'RP';
         
         await Commission.create([{
           userId: order.buyerId,

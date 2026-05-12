@@ -602,7 +602,7 @@ async function generateMiniStockCommissionBatch(forDate = new Date()) {
     {
       $match: {
         buyerType: 'MINI_STOCK',
-        'buyerCommission.type': 'MINISTOCK_MARGIN',
+        'buyerCommission.type': 'MINISTOCK_COMMISSION',
         'buyerCommission.recorded': true,
         deliveredAt: { $gte: periodStart, $lte: periodEnd },
         status: 'DELIVERED'
@@ -708,7 +708,7 @@ async function generateWholesaleCommissionBatch(forDate = new Date()) {
     {
       $match: {
         buyerType: 'WHOLESALE',
-        'buyerCommission.type': 'WHOLESALE_MARGIN',
+        'buyerCommission.type': 'WHOLESALE_COMMISSION',
         'buyerCommission.recorded': true,
         deliveredAt: { $gte: periodStart, $lte: periodEnd },
         status: 'DELIVERED'

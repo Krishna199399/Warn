@@ -102,8 +102,8 @@ export default function EditProductPage() {
           sv:          String(p.sv   ?? ''),
           rv:          String(p.rv   ?? ''),
           iv:          String(p.iv   ?? ''),
-          wholesalePrice: String(p.wholesalePrice ?? ''),
-          miniStockPrice: String(p.miniStockPrice ?? ''),
+          wholesaleCommission: String(p.wholesaleCommission ?? ''),
+          miniStockCommission: String(p.miniStockCommission ?? ''),
           description: p.description || '',
           brand:       p.brand       || '',
           weight:      p.weight      || '',
@@ -188,8 +188,8 @@ export default function EditProductPage() {
       if (form.sv)  fd.append('sv',  form.sv);
       if (form.rv)  fd.append('rv',  form.rv);
       if (form.iv)  fd.append('iv',  form.iv);
-      if (form.wholesalePrice) fd.append('wholesalePrice', form.wholesalePrice);
-      if (form.miniStockPrice) fd.append('miniStockPrice', form.miniStockPrice);
+      if (form.wholesaleCommission) fd.append('wholesaleCommission', form.wholesaleCommission);
+      if (form.miniStockCommission) fd.append('miniStockCommission', form.miniStockCommission);
       fd.append('description', form.description.trim());
       fd.append('brand',       form.brand.trim());
       fd.append('weight',      form.weight.trim());
@@ -449,8 +449,8 @@ export default function EditProductPage() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
                   { key: 'price', label: 'Base Price',      hint: 'Base selling price (before discount)' },
-                  { key: 'wholesalePrice', label: 'Wholesale Price', hint: 'Price for Wholesale buyers' },
-                  { key: 'miniStockPrice', label: 'Mini Stock Price', hint: 'Price for Mini Stock buyers' },
+                  { key: 'wholesaleCommission', label: 'Wholesale Commission (per unit)', hint: 'Commission amount for Wholesale buyers' },
+                  { key: 'miniStockCommission', label: 'Mini Stock Commission (per unit)', hint: 'Commission amount for Mini Stock buyers' },
                   { key: 'rp',  label: 'RP – Retail Point',   hint: 'Price at retail point' },
                   { key: 'sv',  label: 'SV – Salary Value',   hint: 'Salary value component' },
                   { key: 'rv',  label: 'RV – Rewards Value',  hint: 'Rewards value component' },

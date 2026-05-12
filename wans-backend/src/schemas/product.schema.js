@@ -29,8 +29,8 @@ const createProductSchema = z.object({
     sv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     iv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    wholesalePrice: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    miniStockPrice: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
+    wholesaleCommission: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
+    miniStockCommission: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     unit: z.string()
       .min(1, 'Unit is required')
       .max(20, 'Unit cannot exceed 20 characters')
@@ -64,8 +64,8 @@ const updateProductSchema = z.object({
     sv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     rv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     iv: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    wholesalePrice: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
-    miniStockPrice: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
+    wholesaleCommission: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
+    miniStockCommission: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     unit: z.string().min(1).max(20).optional(),
     unitQuantity: z.string().or(z.number()).transform(val => parseFloat(val)).optional(),
     brand: z.string().max(100).optional().or(z.literal('')),

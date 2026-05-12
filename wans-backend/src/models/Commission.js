@@ -10,7 +10,9 @@ const commissionSchema = new mongoose.Schema({
   // IV = Incentive Value
   // SV = Salary Value
   // RV = Rewards Value
-  type:       { type: String, enum: ['RP', 'IV', 'SV', 'RV'], required: true },
+  // WHOLESALE_COMMISSION = Direct commission for wholesale buyers
+  // MINISTOCK_COMMISSION = Direct commission for mini stock buyers
+  type:       { type: String, enum: ['RP', 'IV', 'SV', 'RV', 'WHOLESALE_COMMISSION', 'MINISTOCK_COMMISSION'], required: true },
   amount:     { type: Number, required: true },
   percentage: { type: Number, required: true },   // % of this pool applied
   poolAmount: { type: Number, required: true },   // total pool size (product.field × qty)

@@ -32,15 +32,12 @@ const createOrder = async (req, res, next) => {
 
     // Determine price based on buyer type
     let price;
-    if (buyerType === 'WHOLESALE') {
-      price = Number(product.wholesalePrice) || 0;
+    if (buyerType === 'WHOLESALE' || buyerType === 'MINI_STOCK') {
+      // In the new commission model, wholesale and mini stock pay MRP
+      // and earn commission separately
+      price = Number(product.mrp) || 0;
       if (price <= 0) {
-        return res.status(400).json({ success: false, error: 'Product has no wholesale price set' });
-      }
-    } else if (buyerType === 'MINI_STOCK') {
-      price = Number(product.miniStockPrice) || 0;
-      if (price <= 0) {
-        return res.status(400).json({ success: false, error: 'Product has no mini-stock price set' });
+        return res.status(400).json({ success: false, error: 'Product has no valid MRP price' });
       }
     } else {
       // Customer orders use MRP
@@ -65,10 +62,8 @@ const createOrder = async (req, res, next) => {
       svPoints: Number(product.sv) || 0,
       rvPoints: Number(product.rv) || 0,
       mrp: Number(product.mrp) || 0,
-      wholesalePrice: Number(product.wholesalePrice) || 0,
-      miniStockPrice: Number(product.miniStockPrice) || 0,
-      wholesaleMargin: Number(product.wholesaleMargin) || 0,
-      miniStockMargin: Number(product.miniStockMargin) || 0,
+      wholesaleCommission: Number(product.wholesaleCommission) || 0,
+      miniStockCommission: Number(product.miniStockCommission) || 0,
     };
 
     // Calculate buyer commission based on role

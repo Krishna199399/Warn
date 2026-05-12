@@ -243,8 +243,8 @@ export default function ProductDetailPage() {
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 mb-4">
               <p className="text-sm text-green-700 mb-2">Price</p>
               <PriceDisplay 
-                mrp={product.actualPrice}
-                sellingPrice={product.mrp}
+                mrp={product.mrp}
+                sellingPrice={product.price}
                 size="xlarge"
                 showSavings={true}
                 unit={`per ${product.unit}`}

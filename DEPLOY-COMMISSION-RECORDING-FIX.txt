@@ -7,7 +7,7 @@ Wholesale and Mini Stock buyers were not seeing their commissions in the
 "My Margins" page after placing and receiving orders.
 
 ROOT CAUSE:
-The order controller had THREE issues from incomplete commission model migration:
+The order controller had FOUR issues from incomplete commission model migration:
 
 1. PRICING: Still using old wholesalePrice/miniStockPrice fields (which don't exist)
    - Should use MRP for all buyer types in new commission model
@@ -21,8 +21,13 @@ The order controller had THREE issues from incomplete commission model migration
    - MINISTOCK_COMMISSION was being saved as 'RP'
    - Should save as WHOLESALE_COMMISSION and MINISTOCK_COMMISSION
 
+4. ORDER MODEL ENUM: Model validation still had old enum values
+   - Old: ['RP', 'WHOLESALE_MARGIN', 'MINISTOCK_MARGIN', 'NONE']
+   - New: ['RP', 'WHOLESALE_COMMISSION', 'MINISTOCK_COMMISSION', 'NONE']
+   - Was causing: "WHOLESALE_COMMISSION is not a valid enum value" error
+
 CHANGES MADE:
-✅ wans-backend/src/controllers/order.controller.js (3 fixes)
+✅ wans-backend/src/controllers/order.controller.js (Commit: 8f4a2e3)
    1. Lines 35-49: Fixed pricing logic
       - Wholesale and Mini Stock now pay MRP
       - Commission is earned separately (not through discounted price)
@@ -34,6 +39,12 @@ CHANGES MADE:
    3. Lines 650-667: Fixed commission recording
       - Removed type mapping logic (was converting to 'RP')
       - Now uses actual commission type from order.buyerCommission.type
+
+✅ wans-backend/src/models/Order.js (Commit: aa7eb31)
+   4. Line 93: Fixed buyerCommission.type enum
+      - Removed: 'WHOLESALE_MARGIN', 'MINISTOCK_MARGIN'
+      - Added: 'WHOLESALE_COMMISSION', 'MINISTOCK_COMMISSION'
+      - This allows the model to accept the correct commission types
 
 ═══════════════════════════════════════════════════════════════════════
   DEPLOYMENT STEPS (Run on VPS as root)

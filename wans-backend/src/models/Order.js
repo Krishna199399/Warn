@@ -97,7 +97,7 @@ const orderSchema = new mongoose.Schema({
   
   // NEW: Commission tracking for wholesale/mini-stock
   buyerCommission: {
-    type: { type: String, enum: ['RP', 'WHOLESALE_MARGIN', 'MINISTOCK_MARGIN', 'NONE'], default: 'NONE' },
+    type: { type: String, enum: ['RP', 'WHOLESALE_COMMISSION', 'MINISTOCK_COMMISSION', 'NONE'], default: 'NONE' },
     amountPerUnit: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },
     recorded: { type: Boolean, default: false },

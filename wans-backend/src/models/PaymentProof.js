@@ -5,7 +5,7 @@ const paymentProofSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
     required: true,
-    index: true,
+    // index defined below via paymentProofSchema.index() with unique: true
   },
 
   // Who submitted this proof

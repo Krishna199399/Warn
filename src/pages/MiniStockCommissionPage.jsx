@@ -3,7 +3,7 @@ import { commissionsApi } from '../api/commissions.api';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/helpers';
 import { exportCSV } from '../utils/exportCSV';
-import { DollarSign, TrendingUp, Award, BarChart2, ChevronDown, ChevronUp, Download, Search, ShoppingBag } from 'lucide-react';
+import { DollarSign, TrendingUp, Award, BarChart2, Download, Search, ShoppingBag } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ export default function MiniStockCommissionPage() {
   const { user } = useAuth();
   const [commissions, setCommissions] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [timeRange, setTimeRange] = useState('month');
@@ -226,22 +225,6 @@ export default function MiniStockCommissionPage() {
         </Card>
       )}
 
-      {/* Info banner */}
-      <Card className="bg-purple-50 border-purple-200">
-        <CardContent className="flex items-start gap-3 p-4">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center shrink-0">
-            <ShoppingBag size={18} className="text-purple-700" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-purple-900">How Mini Stock Margins Work</p>
-            <p className="text-xs text-purple-700 mt-1 leading-relaxed">
-              You earn the difference between <strong>MRP</strong> and <strong>Mini Stock Price</strong> on every product you purchase. 
-              For example: If MRP is ₹1,000 and Mini Stock Price is ₹850, you earn ₹150 margin per unit when you buy and resell.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-xs">
@@ -261,13 +244,9 @@ export default function MiniStockCommissionPage() {
             <p className="p-8 text-center text-sm text-muted-foreground">No margin records found.</p>
           ) : (
             filtered.map((c, i) => {
-              const open = expanded[c._id];
               return (
                 <div key={c._id || i}>
-                  <div
-                    className="px-5 py-3 flex items-center justify-between hover:bg-muted/40 cursor-pointer transition-colors"
-                    onClick={() => setExpanded(p => ({ ...p, [c._id]: !open }))}
-                  >
+                  <div className="px-5 py-3 flex items-center justify-between hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-3">
                       <span className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-purple-100 text-purple-700">
                         MS
@@ -279,21 +258,8 @@ export default function MiniStockCommissionPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-primary">{formatCurrency(c.amount)}</p>
-                      {open ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                     </div>
                   </div>
-                  {open && (
-                    <div className="px-5 pb-3 pt-1 bg-muted/30">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
-                        <span>Pool Amount: <strong>{formatCurrency(c.poolAmount)}</strong></span>
-                        <span>Your %: <strong>{c.percentage}%</strong></span>
-                        <span>Earned: <strong className="text-primary">{formatCurrency(c.amount)}</strong></span>
-                        <span>Sale Total: <strong>{formatCurrency(c.saleRV)}</strong></span>
-                        <span>Level: <strong>{c.level}</strong></span>
-                        <span>Type: <strong>Mini Stock Margin</strong></span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })

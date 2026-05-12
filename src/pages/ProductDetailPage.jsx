@@ -57,22 +57,26 @@ function ExpandableSection({ title, content, icon: Icon, isOpen, onToggle }) {
 function PricingBreakdownTable({ product }) {
   // Tax rate from product (default 18% if not set)
   const taxRate = product.taxRate || 18;
-  
-  // MRP is tax-inclusive, so calculate the base price and tax amount
-  const mrpValue = product.mrp || 0;
-  const basePrice = mrpValue > 0 ? mrpValue / (1 + taxRate / 100) : 0;
-  const taxAmount = mrpValue > 0 ? mrpValue - basePrice : 0;
-  
+
+  // actualPrice = MRP (package-printed price, tax-inclusive)
+  // mrp in schema = sell price (what customers actually pay)
+  const actualPriceValue = product.actualPrice || 0;
+  const sellPriceValue   = product.mrp || 0;
+
+  // Tax amount derived from MRP
+  const mrpBase = actualPriceValue > 0 ? actualPriceValue / (1 + taxRate / 100) : 0;
+  const mrpTax  = actualPriceValue > 0 ? actualPriceValue - mrpBase : 0;
+
   const pricingItems = [
-    { key: 'basePrice', label: 'Base Price (excl. tax)', value: basePrice, secondary: true },
-    { key: 'taxAmount', label: `Tax (${taxRate}%)`, value: taxAmount, secondary: true },
-    { key: 'mrp', label: 'MRP (incl. tax)', value: product.mrp, highlight: true },
-    { key: 'wholesaleCommission', label: 'Wholesale Commission', value: product.wholesaleCommission },
-    { key: 'miniStockCommission', label: 'Mini Stock Commission', value: product.miniStockCommission },
-    { key: 'rp',  label: 'RP (Retail Point)',          value: product.rp },
-    { key: 'sv',  label: 'SV (Salary Value)',          value: product.sv },
-    { key: 'rv',  label: 'RV (Rewards Value)',         value: product.rv },
-    { key: 'iv',  label: 'IV (Incentive Value)',       value: product.iv },
+    { key: 'taxAmount',           label: `Tax (${taxRate}%)`,         value: mrpTax,                   secondary: true },
+    { key: 'actualPrice',         label: 'MRP (incl. tax)',           value: product.actualPrice,      highlight: true },
+    { key: 'sellPrice',           label: 'Sell Price',                value: sellPriceValue },
+    { key: 'wholesaleCommission', label: 'Wholesale Commission',      value: product.wholesaleCommission },
+    { key: 'miniStockCommission', label: 'Mini Stock Commission',     value: product.miniStockCommission },
+    { key: 'rp',                  label: 'RP (Retail Point)',         value: product.rp },
+    { key: 'sv',                  label: 'SV (Salary Value)',         value: product.sv },
+    { key: 'rv',                  label: 'RV (Rewards Value)',        value: product.rv },
+    { key: 'iv',                  label: 'IV (Incentive Value)',      value: product.iv },
   ];
 
   return (
@@ -243,8 +247,8 @@ export default function ProductDetailPage() {
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 mb-4">
               <p className="text-sm text-green-700 mb-2">Price</p>
               <PriceDisplay 
-                mrp={product.mrp}
-                sellingPrice={product.price}
+                mrp={product.actualPrice}
+                sellingPrice={product.mrp}
                 size="xlarge"
                 showSavings={true}
                 unit={`per ${product.unit}`}

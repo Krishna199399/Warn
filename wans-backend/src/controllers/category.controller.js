@@ -8,11 +8,13 @@ const getCategories = async (req, res, next) => {
       .sort({ order: 1, name: 1 })
       .lean();
 
-    // Get product counts for each category (case-insensitive match)
+    // Get product counts for each category
+    // Products store `category` as the category NAME (not key), so match by name
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
         const count = await Product.countDocuments({ 
-          category: { $regex: new RegExp(`^${category.key}$`, 'i') }
+          category: { $regex: new RegExp(`^${category.name}$`, 'i') },
+          isDeleted: { $ne: true },
         });
         return { ...category, productCount: count };
       })

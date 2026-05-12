@@ -14,10 +14,12 @@ const UNITS      = ['kg', 'liter', 'unit', 'bag', 'box', 'packet', 'quintal', 't
 
 const INITIAL_FORM = {
   name: '', sku: '', category: '', unit: UNITS[0], unitQuantity: '',
-  mrp: '', price: '', rp: '', sv: '', rv: '', iv: '',
+  actualPrice: '', // MRP – package printed price (maps to schema's actualPrice)
+  price: '',       // Sell Price – actual price charged to customers (maps to schema's mrp/price)
+  rp: '', sv: '', rv: '', iv: '',
   wholesaleCommission: '', miniStockCommission: '',
   description: '', brand: '', weight: '', tagsInput: '',
-  taxRate: '18', // Default 18% tax
+  taxRate: '18',
   ingredients: '', howToUse: '', benefits: '', dosage: '', disclaimer: '',
 };
 
@@ -100,17 +102,7 @@ export default function CreateProductPage() {
   }, []);
 
   const set = (key, val) => {
-    setForm(f => {
-      const updated = { ...f, [key]: val };
-      
-      // Auto-fill Sell Price from MRP (for preview)
-      if (key === 'mrp') {
-        const numVal = parseFloat(val);
-        updated.price = (!isNaN(numVal) && numVal >= 0) ? val : '';  // Only set if valid number
-      }
-      
-      return updated;
-    });
+    setForm(f => ({ ...f, [key]: val }));
     if (errors[key]) setErrors(e => ({ ...e, [key]: '' }));
   };
 
@@ -120,8 +112,8 @@ export default function CreateProductPage() {
     if (!form.name.trim())     e.name  = 'Product name is required';
     if (!form.sku.trim())      e.sku   = 'SKU is required';
     if (!form.category)        e.category = 'Select a category';
-    if (!form.mrp || isNaN(parseFloat(form.mrp)) || parseFloat(form.mrp) < 0)
-                               e.mrp = 'Enter a valid MRP price (≥ 0)';
+    if (!form.actualPrice || isNaN(parseFloat(form.actualPrice)) || parseFloat(form.actualPrice) < 0)
+                               e.actualPrice = 'Enter a valid MRP price (≥ 0)';
     if (!form.price || isNaN(parseFloat(form.price)) || parseFloat(form.price) < 0)
                                e.price = 'Enter a valid sell price (≥ 0)';
     setErrors(e);
@@ -141,8 +133,9 @@ export default function CreateProductPage() {
       fd.append('category',    form.category);
       fd.append('unit',        form.unit);
       if (form.unitQuantity) fd.append('unitQuantity', form.unitQuantity);
-      if (form.mrp)  fd.append('mrp', form.mrp);
-      if (form.price) fd.append('price', form.price);
+      // actualPrice = MRP (package price), price = sell price
+      if (form.actualPrice) fd.append('actualPrice', form.actualPrice);
+      if (form.price)       fd.append('price',       form.price);
       fd.append('taxRate',     form.taxRate || '18');
       if (form.rp)   fd.append('rp',  form.rp);
       if (form.sv)   fd.append('sv',  form.sv);
@@ -200,7 +193,7 @@ export default function CreateProductPage() {
             <ProductPreviewCard
               name={form.name}
               category={form.category}
-              mrp={form.mrp}
+              mrp={form.actualPrice}
               price={form.price}
               unit={form.unit}
               unitQuantity={form.unitQuantity}
@@ -319,18 +312,18 @@ export default function CreateProductPage() {
                 </Field>
               </div>
 
-              <Field label="MRP Price (₹)" hint="Maximum Retail Price (printed on package)" required error={errors.mrp}>
+              <Field label="MRP Price (₹)" hint="Maximum Retail Price (printed on package)" required error={errors.actualPrice}>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">₹</span>
                   <input
-                    id="prod-mrp"
+                    id="prod-actual-price"
                     type="number"
                     min="0"
                     step="0.01"
-                    value={form.mrp}
-                    onChange={e => set('mrp', e.target.value)}
+                    value={form.actualPrice}
+                    onChange={e => set('actualPrice', e.target.value)}
                     placeholder="0.00"
-                    className={`input-field pl-7 ${errors.mrp ? 'border-red-400 focus:border-red-400' : ''}`}
+                    className={`input-field pl-7 ${errors.actualPrice ? 'border-red-400 focus:border-red-400' : ''}`}
                   />
                 </div>
               </Field>

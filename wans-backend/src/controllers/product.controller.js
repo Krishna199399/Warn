@@ -77,17 +77,22 @@ exports.getProduct = async (req, res) => {
 // ─── POST /api/products ───────────────────────────────────────────────────────
 exports.createProduct = async (req, res) => {
   try {
+    // Form sends:
+    //   actualPrice = MRP (package-printed price)  → schema's actualPrice (required)
+    //   price       = sell price                    → schema's mrp and price fields
+    const formActualPrice = req.body.actualPrice ? parseFloat(req.body.actualPrice) : NaN;
+    const formPrice       = req.body.price       ? parseFloat(req.body.price)       : NaN;
+
     const productData = {
       name:        req.body.name,
       sku:         req.body.sku,
       category:    req.body.category,
       unit:        req.body.unit || 'unit',
       unitQuantity: req.body.unitQuantity ? parseFloat(req.body.unitQuantity) : null,
-      actualPrice: parseFloat(req.body.actualPrice),
-      // price is auto-filled from mrp in pre-save hook, but accept it if provided and valid
-      price:       req.body.price && !isNaN(parseFloat(req.body.price)) ? parseFloat(req.body.price) : undefined,
+      actualPrice: !isNaN(formActualPrice) ? formActualPrice : undefined,
+      mrp:         !isNaN(formPrice) ? formPrice : 0,
+      price:       !isNaN(formPrice) ? formPrice : undefined,
       taxRate:     req.body.taxRate ? parseFloat(req.body.taxRate) : 18,
-      mrp:         req.body.mrp  ? parseFloat(req.body.mrp)  : 0,
       rp:          req.body.rp   ? parseFloat(req.body.rp)   : 0,
       sv:          req.body.sv   ? parseFloat(req.body.sv)   : 0,
       rv:          req.body.rv   ? parseFloat(req.body.rv)   : 0,
@@ -129,17 +134,22 @@ exports.updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, error: 'Product not found' });
 
+    // Form sends:
+    //   actualPrice = MRP (package-printed price)  → schema's actualPrice (required)
+    //   price       = sell price                    → schema's mrp and price fields
+    const formActualPrice = req.body.actualPrice != null ? parseFloat(req.body.actualPrice) : NaN;
+    const formPrice       = req.body.price       != null ? parseFloat(req.body.price)       : NaN;
+
     const updateData = {
       name:        req.body.name,
       sku:         req.body.sku,
       category:    req.body.category,
       unit:        req.body.unit || product.unit,
       unitQuantity: req.body.unitQuantity != null ? parseFloat(req.body.unitQuantity) : product.unitQuantity,
-      actualPrice: parseFloat(req.body.actualPrice),
-      // price is auto-filled from mrp in pre-save hook, but accept it if provided and valid
-      price:       req.body.price != null && !isNaN(parseFloat(req.body.price)) ? parseFloat(req.body.price) : product.price,
+      actualPrice: !isNaN(formActualPrice) ? formActualPrice : product.actualPrice,
+      mrp:         !isNaN(formPrice) ? formPrice : product.mrp,
+      price:       !isNaN(formPrice) ? formPrice : product.price,
       taxRate:     req.body.taxRate != null ? parseFloat(req.body.taxRate) : product.taxRate,
-      mrp:         req.body.mrp != null ? parseFloat(req.body.mrp) : product.mrp,
       rp:          req.body.rp  != null ? parseFloat(req.body.rp)  : product.rp,
       sv:          req.body.sv  != null ? parseFloat(req.body.sv)  : product.sv,
       rv:          req.body.rv  != null ? parseFloat(req.body.rv)  : product.rv,

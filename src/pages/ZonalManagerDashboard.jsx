@@ -199,8 +199,8 @@ export default function ZonalManagerDashboard() {
     if (lowPerformingAMs.length > 0) {
       result.push({
         type: 'warning',
-        title: 'Low Performing Area Managers',
-        message: `${lowPerformingAMs.length} Area Managers below ₹50,000 sales`,
+        title: 'Low Performing Regional Managers',
+        message: `${lowPerformingAMs.length} Regional Managers (RM) below ₹50,000 sales`,
         action: () => setShowLowPerformingModal(true),
         icon: TrendingDown,
         data: lowPerformingAMs,
@@ -212,8 +212,8 @@ export default function ZonalManagerDashboard() {
     if (inactiveAMs.length > 0) {
       result.push({
         type: 'info',
-        title: 'Inactive Area Managers',
-        message: `${inactiveAMs.length} Area Managers with no recent activity`,
+        title: 'Inactive Regional Managers',
+        message: `${inactiveAMs.length} Regional Managers (RM) with no recent activity`,
         action: () => navigate('/app/area-employees'),
         icon: AlertCircle,
       });
@@ -267,7 +267,7 @@ export default function ZonalManagerDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Area Managers</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Regional Managers</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -275,14 +275,14 @@ export default function ZonalManagerDashboard() {
               {areaManagerMetrics.totalAMs}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Area Managers in your zone
+              Regional Managers (RM) in your zone
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Area Managers</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Regional Managers</CardTitle>
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -305,7 +305,7 @@ export default function ZonalManagerDashboard() {
               {formatCurrency(stats?.totalSales || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Aggregated from all Area Managers
+              Aggregated from all Regional Managers (RM)
             </p>
           </CardContent>
         </Card>
@@ -320,7 +320,7 @@ export default function ZonalManagerDashboard() {
               {areaManagerMetrics.totalNetworkSize}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {areaManagerMetrics.totalDOs} DOs + {areaManagerMetrics.totalAdvisors} Advisors
+              {areaManagerMetrics.totalDOs} DOs + {areaManagerMetrics.totalAdvisors} PRs
             </p>
           </CardContent>
         </Card>
@@ -365,7 +365,7 @@ export default function ZonalManagerDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-muted-foreground" />
-            Area Manager Performance
+            Regional Manager (RM) Performance
           </CardTitle>
           <CardDescription>
             Performance levels: High (≥₹100k) · Medium (≥₹50k) · Low (&lt;₹50k)
@@ -382,7 +382,7 @@ export default function ZonalManagerDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Area Manager</TableHead>
+                  <TableHead>Regional Manager</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead>Total Sales</TableHead>
                   <TableHead>DO Count</TableHead>
@@ -394,7 +394,7 @@ export default function ZonalManagerDashboard() {
                 {areaManagerPerformance.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No Area Managers found
+                      No Regional Managers found
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -543,7 +543,7 @@ export default function ZonalManagerDashboard() {
                           {am.region?.split('-').pop()?.trim() || am.name} - {formatCurrency(am.totalSales)} total sales
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Area Manager: {am.name}
+                          Regional Manager (RM): {am.name}
                         </p>
                       </div>
                     </div>
@@ -565,15 +565,15 @@ export default function ZonalManagerDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-blue-600" />
-              Low Performing Area Managers
+              Low Performing Regional Managers (RM)
             </DialogTitle>
             <DialogDescription>
-              Area Managers with sales below ₹50,000
+              Regional Managers (RM) with sales below ₹50,000
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto space-y-3 mt-4">
-            {alerts.find(a => a.title === 'Low Performing Area Managers')?.data?.map((am) => (
+            {alerts.find(a => a.title === 'Low Performing Regional Managers')?.data?.map((am) => (
               <div
                 key={am._id}
                 className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200 hover:border-red-400 transition-colors cursor-pointer"
@@ -606,10 +606,10 @@ export default function ZonalManagerDashboard() {
                 </div>
               </div>
             ))}
-            {(!alerts.find(a => a.title === 'Low Performing Area Managers')?.data?.length) && (
+            {(!alerts.find(a => a.title === 'Low Performing Regional Managers')?.data?.length) && (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
-                <p>No low performing Area Managers</p>
+                <p>No low performing Regional Managers</p>
               </div>
             )}
           </div>
@@ -622,7 +622,7 @@ export default function ZonalManagerDashboard() {
               setShowLowPerformingModal(false);
               navigate('/app/area-employees');
             }}>
-              View All Area Managers
+              View All Regional Managers
             </Button>
           </div>
         </DialogContent>

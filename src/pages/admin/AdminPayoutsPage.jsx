@@ -300,7 +300,7 @@ export default function AdminPayoutsPage() {
                 <Briefcase size={16} className="text-orange-600" />
                 Employee Payouts
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Monthly salary and Incentive Value (IV) for Area Managers, DO Managers, and other employees</p>
+              <p className="text-xs text-muted-foreground">Monthly salary and Incentive Value (IV) for Regional Managers (RM), Development Officers (DO), and other employees</p>
             </CardHeader>
             <CardContent>
               {filteredBatches.length === 0 ? (

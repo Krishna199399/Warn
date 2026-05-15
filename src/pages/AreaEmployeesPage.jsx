@@ -31,8 +31,8 @@ export default function AreaEmployeesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Area Managers</h1>
-          <p className="text-muted-foreground text-sm mt-1">{managers.length} Area Managers in your zone</p>
+          <h1 className="text-2xl font-bold tracking-tight">Regional Managers (RM)</h1>
+          <p className="text-muted-foreground text-sm mt-1">{managers.length} Regional Managers in your zone</p>
         </div>
         {managers.length > 0 && (
           <Button variant="outline" size="sm" onClick={() => exportCSV(managers.map(m => ({ Name:m.name, Region:m.region, State:m.state, Phone:m.phone, Status:m.status })), 'area_managers')}>
@@ -61,7 +61,7 @@ export default function AreaEmployeesPage() {
       ) : !error && filtered.length === 0 ? (
         <div className="py-12 text-center text-slate-400 text-sm">
           <Users size={32} className="mx-auto mb-2 opacity-30" />
-          {search ? 'No matching managers found.' : 'No area managers found in your zone.'}
+          {search ? 'No matching managers found.' : 'No Regional Managers found in your zone.'}
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -47,15 +47,15 @@ export function getStatusColor(status) {
 
 export function getRoleColor(role) {
   switch (role) {
-    case 'ADMIN': return 'bg-purple-50 text-purple-700';
-    case 'STATE_HEAD': return 'bg-blue-50 text-blue-700';
-    case 'ZONAL_MANAGER': return 'bg-indigo-50 text-indigo-700';
-    case 'AREA_MANAGER': return 'bg-cyan-50 text-cyan-700';
-    case 'DO_MANAGER': return 'bg-teal-50 text-teal-700';
-    case 'ADVISOR': return 'bg-green-50 text-green-700';
-    case 'WHOLESALE': return 'bg-amber-50 text-amber-700';
-    case 'MINI_STOCK': return 'bg-orange-50 text-orange-700';
-    default: return 'bg-slate-100 text-slate-600';
+    case 'ADMIN':         return 'bg-purple-50 text-purple-700';  // Admin
+    case 'STATE_HEAD':    return 'bg-blue-50 text-blue-700';      // Executive Manager (EM)
+    case 'ZONAL_MANAGER': return 'bg-indigo-50 text-indigo-700'; // Zonal Manager (ZM)
+    case 'AREA_MANAGER':  return 'bg-cyan-50 text-cyan-700';     // Regional Manager (RM)
+    case 'DO_MANAGER':    return 'bg-teal-50 text-teal-700';     // Development Officer (DO)
+    case 'ADVISOR':       return 'bg-green-50 text-green-700';   // Promotion Representative (PR)
+    case 'WHOLESALE':     return 'bg-amber-50 text-amber-700';
+    case 'MINI_STOCK':    return 'bg-orange-50 text-orange-700';
+    default:              return 'bg-slate-100 text-slate-600';
   }
 }
 

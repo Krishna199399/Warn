@@ -21,15 +21,15 @@ import { PageHeader, StatCard, LoadingGrid } from '@/components/ui';
 import { useApi } from '../hooks/useApi';
 
 const ROLE_CONFIG = {
-  ALL:            { label: 'All',        badgeClass: 'bg-slate-100 text-slate-700' },
-  ADMIN:          { label: 'Admin',      badgeClass: 'bg-purple-100 text-purple-700' },
-  STATE_HEAD:     { label: 'State Head', badgeClass: 'bg-blue-100 text-blue-700' },
-  ZONAL_MANAGER:  { label: 'Zonal',     badgeClass: 'bg-indigo-100 text-indigo-700' },
-  AREA_MANAGER:   { label: 'Area',      badgeClass: 'bg-green-100 text-green-700' },
-  DO_MANAGER:     { label: 'DO Mgr',    badgeClass: 'bg-amber-100 text-amber-700' },
-  ADVISOR:        { label: 'Advisor',   badgeClass: 'bg-rose-100 text-rose-700' },
-  WHOLESALE:      { label: 'Wholesale', badgeClass: 'bg-orange-100 text-orange-700' },
-  MINI_STOCK:     { label: 'Mini Stock',badgeClass: 'bg-pink-100 text-pink-700' },
+  ALL:            { label: 'All',     badgeClass: 'bg-slate-100 text-slate-700'   },
+  ADMIN:          { label: 'Admin',   badgeClass: 'bg-purple-100 text-purple-700' },
+  STATE_HEAD:     { label: 'EM',      badgeClass: 'bg-blue-100 text-blue-700'     },
+  ZONAL_MANAGER:  { label: 'ZM',      badgeClass: 'bg-indigo-100 text-indigo-700' },
+  AREA_MANAGER:   { label: 'RM',      badgeClass: 'bg-cyan-100 text-cyan-700'     },
+  DO_MANAGER:     { label: 'DO',      badgeClass: 'bg-teal-100 text-teal-700'     },
+  ADVISOR:        { label: 'PR',      badgeClass: 'bg-green-100 text-green-700'   },
+  WHOLESALE:      { label: 'WS',      badgeClass: 'bg-orange-100 text-orange-700' },
+  MINI_STOCK:     { label: 'MS',      badgeClass: 'bg-pink-100 text-pink-700'     },
 };
 const STATUS_CLASS = {
   APPROVED:     'bg-green-50 text-green-700',

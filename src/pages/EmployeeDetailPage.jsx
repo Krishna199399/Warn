@@ -20,14 +20,14 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { useApi } from '@/hooks';
 
 const ROLE_CONFIG = {
-  ADMIN:          { label: 'Admin',      color: 'bg-purple-100 text-purple-700' },
-  STATE_HEAD:     { label: 'State Head', color: 'bg-blue-100 text-blue-700' },
-  ZONAL_MANAGER:  { label: 'Zonal Manager', color: 'bg-indigo-100 text-indigo-700' },
-  AREA_MANAGER:   { label: 'Area Manager', color: 'bg-green-100 text-green-700' },
-  DO_MANAGER:     { label: 'DO Manager', color: 'bg-amber-100 text-amber-700' },
-  ADVISOR:        { label: 'Advisor', color: 'bg-rose-100 text-rose-700' },
-  WHOLESALE:      { label: 'Wholesale', color: 'bg-orange-100 text-orange-700' },
-  MINI_STOCK:     { label: 'Mini Stock', color: 'bg-pink-100 text-pink-700' },
+  ADMIN:          { label: 'Admin',                        color: 'bg-purple-100 text-purple-700' },
+  STATE_HEAD:     { label: 'Executive Manager (EM)',       color: 'bg-blue-100 text-blue-700'    },
+  ZONAL_MANAGER:  { label: 'Zonal Manager (ZM)',           color: 'bg-indigo-100 text-indigo-700'},
+  AREA_MANAGER:   { label: 'Regional Manager (RM)',        color: 'bg-cyan-100 text-cyan-700'    },
+  DO_MANAGER:     { label: 'Development Officer (DO)',     color: 'bg-teal-100 text-teal-700'    },
+  ADVISOR:        { label: 'Promotion Representative (PR)',color: 'bg-green-100 text-green-700'  },
+  WHOLESALE:      { label: 'Wholesale',                   color: 'bg-orange-100 text-orange-700'},
+  MINI_STOCK:     { label: 'Mini Stock',                  color: 'bg-pink-100 text-pink-700'    },
 };
 
 export default function EmployeeDetailPage() {

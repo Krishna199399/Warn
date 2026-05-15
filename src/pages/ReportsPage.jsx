@@ -53,7 +53,13 @@ export default function ReportsPage() {
     try {
       const usersRes = await usersApi.getAll();
       const users = usersRes.data.data || [];
-      const roleLabels = { ADVISOR:'Advisors', DO_MANAGER:'DO Managers', AREA_MANAGER:'Area Managers', ZONAL_MANAGER:'Zonal Managers', STATE_HEAD:'State Heads' };
+      const roleLabels = {
+        ADVISOR: 'Promotion Representatives (PR)',
+        DO_MANAGER: 'Development Officers (DO)',
+        AREA_MANAGER: 'Regional Managers (RM)',
+        ZONAL_MANAGER: 'Zonal Managers (ZM)',
+        STATE_HEAD: 'Executive Managers (EM)',
+      };
       const roleCounts = users.reduce((acc, u) => { acc[u.role] = (acc[u.role] || 0) + 1; return acc; }, {});
       setRoleDistribution(Object.entries(roleCounts).filter(([r]) => roleLabels[r]).map(([r, count]) => ({ name: roleLabels[r], value: count, count })));
     } catch { setRoleDistribution([]); }

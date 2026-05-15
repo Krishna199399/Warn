@@ -318,10 +318,15 @@ export default function MyRewardsPage() {
           <div>
             <p className="text-sm font-semibold text-blue-900 mb-1">How Rewards Work</p>
             <p className="text-xs text-blue-700 leading-relaxed">
-              ⭐ <strong>STAR rewards</strong> open from Day 1 — earn each benefit by accumulating RV from 0. Each benefit's counter resets after it's earned (overflow carries to the next benefit).
+              ⭐ <strong>STAR rewards</strong> open from Day 1 — earn each benefit by accumulating RV from 0.
+              Each benefit's counter resets after it's earned (overflow carries to the next benefit).
             </p>
             <p className="text-xs text-blue-600 mt-1">
-              When you reach <strong>STAR Salary</strong>, STAR rewards lock ✅ and 💎 <strong>RUBY rewards open</strong>. When you reach <strong>RUBY Salary</strong>, RUBY rewards lock ✅ and 🏆 <strong>PEARL rewards open</strong>.
+              When you reach <strong>STAR Salary</strong>, STAR rewards lock ✅ and 💎 <strong>RUBY rewards open</strong>.
+              When you reach <strong>RUBY Salary</strong>, RUBY rewards lock ✅ and 🏆 <strong>PEARL rewards open</strong>.
+            </p>
+            <p className="text-xs text-blue-500 mt-1">
+              Each SV target is a <strong>fresh counter</strong> — progress resets to 0 when a level completes.
             </p>
           </div>
         </CardContent>

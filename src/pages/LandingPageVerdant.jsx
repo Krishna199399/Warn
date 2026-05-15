@@ -4,11 +4,12 @@ import {
   ArrowRight, Leaf, Sparkles, Truck, ShieldCheck, Award, 
   ChevronRight, Star, ShoppingCart, Search, Menu, X, User, ChevronDown
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { productsApi } from '../api/products.api';
 import { categoriesApi } from '../api/categories.api';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import gsap from 'gsap';
 
 export default function LandingPageVerdant() {
   const navigate = useNavigate();
@@ -21,9 +22,47 @@ export default function LandingPageVerdant() {
   const { cart } = useCart();
   const { user, logout } = useAuth();
 
+  const heroRef = useRef(null);
+  const titleLine1Ref = useRef(null);
+  const titleLine2Ref = useRef(null);
+  const subtitleRef = useRef(null);
+  const ctaRef = useRef(null);
+  const statsRef = useRef(null);
+
   useEffect(() => {
     loadProducts();
     loadCategories();
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      
+      tl.fromTo(heroRef.current.querySelector('.hero-badge'),
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, delay: 0.2 }
+      )
+      .fromTo([titleLine1Ref.current, titleLine2Ref.current],
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 1, stagger: 0.2 },
+        "-=0.6"
+      )
+      .fromTo(subtitleRef.current,
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8 },
+        "-=0.6"
+      )
+      .fromTo(ctaRef.current,
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8 },
+        "-=0.6"
+      )
+      .fromTo(statsRef.current.children,
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.1 },
+        "-=0.4"
+      );
+    }, heroRef);
+
+    return () => ctx.revert();
   }, []);
 
   const loadProducts = async () => {
@@ -64,9 +103,9 @@ export default function LandingPageVerdant() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/80 via-stone-50/60 to-orange-50/70 backdrop-blur-sm" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div className="min-h-screen bg-stone-50" style={{ fontFamily: "'Outfit', sans-serif" }}>
       {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b border-amber-100/60 bg-amber-50/80 backdrop-blur-lg">
+      <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-18 max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0">
             <img src="/logo-full.png" srcSet="/logo-full@2x.png 2x, /logo-full@3x.png 3x" alt="Warnamayii Krishi Resources" className="h-12" />
@@ -183,42 +222,43 @@ export default function LandingPageVerdant() {
       </header>
 
       {/* Hero Section */}
-      <section id="home" className="relative overflow-hidden min-h-[600px] lg:min-h-[700px]">
-        {/* Background Image - Full Display */}
+      <section id="home" className="relative overflow-hidden min-h-[700px] lg:min-h-[850px] flex items-center" ref={heroRef}>
+        {/* Background Image - Split Overlay */}
         <div className="absolute inset-0">
           <img 
             src="/4b53d9bf-37c3-4a96-8b3b-9f35e530ee24 (1).jpg" 
             alt="Organic farming" 
             className="h-full w-full object-cover object-center"
           />
-          {/* Light gradient only at bottom for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
+          {/* Elegant Dark Forest Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A2318]/95 via-[#0A2318]/80 to-transparent" />
+          <div className="absolute inset-0 bg-black/20 md:hidden" /> {/* Extra darkening for mobile */}
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-green-500/5 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-amber-500/5 blur-3xl" />
+        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-[#1A4D33]/40 blur-[100px]" />
 
         {/* Content */}
-        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-          <div className="max-w-3xl">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-green-400/40 bg-green-600/90 backdrop-blur-md px-4 py-2 text-sm font-medium text-white shadow-lg">
-              <Sparkles className="h-4 w-4" /> 100% Organic · Farm to Door
-            </span>
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+          <div className="max-w-2xl pt-10">
+            <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#A2E2A6]/30 bg-[#1A4D33]/60 backdrop-blur-md px-4 py-2 text-xs font-semibold tracking-wider text-[#A2E2A6] uppercase">
+              <Sparkles className="h-3.5 w-3.5" /> 100% Organic · Farm to Door
+            </div>
             
-            <h1 className="mt-8 text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl drop-shadow-2xl" style={{ fontFamily: "'Playfair Display', serif", textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-              Cultivating a <span className="text-green-400 italic">greener</span> tomorrow.
+            <h1 className="mt-8 text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl lg:text-[5.5rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
+              <div className="overflow-hidden"><div ref={titleLine1Ref}>Cultivating a</div></div>
+              <div className="overflow-hidden"><div ref={titleLine2Ref} className="text-[#A2E2A6]">greener tomorrow.</div></div>
             </h1>
             
-            <p className="mt-6 max-w-2xl text-lg text-white leading-relaxed drop-shadow-lg" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+            <p ref={subtitleRef} className="mt-8 max-w-xl text-lg text-stone-300 leading-relaxed font-light">
               Premium organic fertilizers, heirloom seeds and agricultural essentials — sustainably sourced and trusted by 12,000+ growers nationwide.
             </p>
             
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div ref={ctaRef} className="mt-10 flex flex-wrap gap-4">
               {user ? (
                 <button 
                   onClick={() => navigate('/products')} 
-                  className="group rounded-full bg-green-600 text-white px-8 py-4 text-base font-semibold hover:bg-green-700 transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl"
+                  className="group rounded-full bg-[#A2E2A6] text-[#0A2318] px-8 py-4 text-base font-semibold hover:bg-white transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl hover:-translate-y-1"
                 >
                   Shop Now 
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -226,7 +266,7 @@ export default function LandingPageVerdant() {
               ) : (
                 <button 
                   onClick={() => navigate('/register-select')} 
-                  className="group rounded-full bg-green-600 text-white px-8 py-4 text-base font-semibold hover:bg-green-700 transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl"
+                  className="group rounded-full bg-[#A2E2A6] text-[#0A2318] px-8 py-4 text-base font-semibold hover:bg-white transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl hover:-translate-y-1"
                 >
                   Shop Now 
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -234,31 +274,31 @@ export default function LandingPageVerdant() {
               )}
               <button 
                 onClick={() => navigate('/about')} 
-                className="rounded-full border-2 border-white/80 text-white backdrop-blur-md bg-white/20 px-8 py-4 text-base font-semibold hover:bg-white hover:text-slate-900 transition-all duration-300 shadow-xl"
+                className="rounded-full border border-stone-400 text-white px-8 py-4 text-base font-medium hover:bg-white hover:text-[#0A2318] hover:border-white transition-all duration-300"
               >
                 Our Story
               </button>
             </div>
             
-            <div className="mt-16 flex items-center gap-10 flex-wrap">
-              <div className="backdrop-blur-md bg-white/20 rounded-2xl px-6 py-4 border border-white/30 shadow-xl">
-                <p className="text-3xl font-bold text-white drop-shadow-lg" style={{ fontFamily: "'Playfair Display', serif" }}>12K+</p>
-                <p className="text-sm text-white/90 mt-1 drop-shadow">Happy Farmers</p>
+            <div ref={statsRef} className="mt-16 flex items-center gap-10 flex-wrap border-t border-white/10 pt-8">
+              <div>
+                <p className="text-3xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>12K+</p>
+                <p className="text-sm text-stone-400 mt-1 uppercase tracking-wider text-[10px] font-semibold">Happy Farmers</p>
               </div>
-              <div className="backdrop-blur-md bg-white/20 rounded-2xl px-6 py-4 border border-white/30 shadow-xl">
-                <p className="text-3xl font-bold text-white drop-shadow-lg" style={{ fontFamily: "'Playfair Display', serif" }}>{products.length}+</p>
-                <p className="text-sm text-white/90 mt-1 drop-shadow">Products</p>
+              <div>
+                <p className="text-3xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{products.length}+</p>
+                <p className="text-sm text-stone-400 mt-1 uppercase tracking-wider text-[10px] font-semibold">Products</p>
               </div>
-              <div className="backdrop-blur-md bg-white/20 rounded-2xl px-6 py-4 border border-white/30 shadow-xl">
-                <p className="text-3xl font-bold text-white drop-shadow-lg" style={{ fontFamily: "'Playfair Display', serif" }}>4.9★</p>
-                <p className="text-sm text-white/90 mt-1 drop-shadow">Rating</p>
+              <div>
+                <p className="text-3xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>4.9★</p>
+                <p className="text-sm text-stone-400 mt-1 uppercase tracking-wider text-[10px] font-semibold">Rating</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-amber-50 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-stone-50 to-transparent" />
       </section>
 
       {/* Shop by Category Section */}
@@ -266,7 +306,7 @@ export default function LandingPageVerdant() {
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">BROWSE</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Shop by Category</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>Shop by Category</h2>
           </div>
           <button onClick={() => navigate('/categories')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
             View all <ChevronRight className="h-4 w-4" />
@@ -320,7 +360,7 @@ export default function LandingPageVerdant() {
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Hand-picked</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Featured Products</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>Featured Products</h2>
             <p className="mt-2 text-slate-600">The season's most loved organic essentials.</p>
           </div>
         </div>
@@ -385,7 +425,7 @@ export default function LandingPageVerdant() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Why Warnamayii</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Rooted in trust, grown with care</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>Rooted in trust, grown with care</h2>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((f, i) => (
@@ -406,7 +446,7 @@ export default function LandingPageVerdant() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Loved by growers</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>What our community says</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>What our community says</h2>
           </div>
         </div>
         <div className="relative">
@@ -461,7 +501,7 @@ export default function LandingPageVerdant() {
           <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-1.5 text-xs font-medium text-green-700">
             <Leaf className="h-3.5 w-3.5" /> Join 12,000+ growers
           </span>
-          <h2 className="mt-5 text-4xl sm:text-5xl font-semibold tracking-tight max-w-2xl mx-auto" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h2 className="mt-5 text-4xl sm:text-5xl font-semibold tracking-tight max-w-2xl mx-auto" style={{ fontFamily: "'Syne', sans-serif" }}>
             Start your sustainable journey today
           </h2>
           <p className="mt-4 max-w-xl mx-auto text-slate-600">

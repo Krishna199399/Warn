@@ -8,6 +8,8 @@ const benefitSchema = new mongoose.Schema({
 const salaryPlanSchema = new mongoose.Schema({
   role: {
     type: String,
+    // DB enum keys are preserved — display names managed in roleConfig.js
+    // PR=ADVISOR, DO=DO_MANAGER, RM=AREA_MANAGER, ZM=ZONAL_MANAGER, EM=STATE_HEAD
     enum: ['ADVISOR', 'DO_MANAGER', 'AREA_MANAGER', 'ZONAL_MANAGER', 'STATE_HEAD'],
     required: true,
   },

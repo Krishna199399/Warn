@@ -201,7 +201,7 @@ export default function StateHeadDashboard() {
             {welcome}, {user?.name}
           </h1>
           <p className="text-muted-foreground mt-1">
-            State Head · {user?.state || 'State'}
+            Executive Manager (EM) · {user?.state || 'State'}
             {user?.employeeCode && ` · Code: ${user.employeeCode}`}
           </p>
         </div>

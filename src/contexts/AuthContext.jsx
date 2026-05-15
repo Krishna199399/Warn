@@ -17,11 +17,11 @@ export const ROLES = {
 
 export const ROLE_LABELS = {
   ADMIN:         'Admin',
-  STATE_HEAD:    'State Head',
-  ZONAL_MANAGER: 'Zonal Manager',
-  AREA_MANAGER:  'Area Manager',
-  DO_MANAGER:    'DO Manager',
-  ADVISOR:       'Advisor',
+  STATE_HEAD:    'Executive Manager (EM)',
+  ZONAL_MANAGER: 'Zonal Manager (ZM)',
+  AREA_MANAGER:  'Regional Manager (RM)',
+  DO_MANAGER:    'Development Officer (DO)',
+  ADVISOR:       'Promotion Representative (PR)',
   WHOLESALE:     'Wholesale',
   MINI_STOCK:    'Mini Stock',
   CUSTOMER:      'Customer',

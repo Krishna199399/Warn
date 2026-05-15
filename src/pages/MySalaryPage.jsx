@@ -255,7 +255,12 @@ export default function MySalaryPage() {
               {status.levelsProgress.map(plan => <LevelCard key={plan.level} plan={plan} />)}
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              ⭐ 0 → 7.5L pts SV → STAR → Start fresh → 💎 0 → 8.5L pts SV → RUBY → Start fresh → 🏆 0 → 10L pts SV → PEARL
+              {status.levelsProgress.map((p, i) => (
+                <span key={p.level}>
+                  {LEVEL_COLORS[p.level]?.icon} 0 → {formatPoints(p.svTarget)} SV → <strong>{p.level}</strong>
+                  {i < status.levelsProgress.length - 1 && <span className="mx-1 text-muted-foreground/60">→ Reset →</span>}
+                </span>
+              ))}
             </p>
           </>
         ) : (

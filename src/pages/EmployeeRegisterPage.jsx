@@ -12,11 +12,11 @@ import PublicNavbar from '@/components/PublicNavbar';
 import { registerEmployee } from '@/api/auth.api';
 
 const EMPLOYEE_ROLES = [
-  { value: 'STATE_HEAD', label: 'State Head', description: 'Manages entire state operations' },
-  { value: 'ZONAL_MANAGER', label: 'Zonal Manager', description: 'Manages multiple areas in a zone' },
-  { value: 'AREA_MANAGER', label: 'Area Manager', description: 'Manages area operations' },
-  { value: 'DO_MANAGER', label: 'DO Manager', description: 'Manages district operations' },
-  { value: 'ADVISOR', label: 'Advisor', description: 'Field advisor for farmers' },
+  { value: 'STATE_HEAD',    label: 'Executive Manager (EM)', description: 'Manages state-wide executive operations' },
+  { value: 'ZONAL_MANAGER', label: 'Zonal Manager (ZM)',     description: 'Manages multiple regions in a zone' },
+  { value: 'AREA_MANAGER',  label: 'Regional Manager (RM)',  description: 'Manages regional operations' },
+  { value: 'DO_MANAGER',    label: 'Development Officer (DO)', description: 'Manages development operations' },
+  { value: 'ADVISOR',       label: 'Promotion Representative (PR)', description: 'Field representative for farmers' },
 ];
 
 const STEPS = [

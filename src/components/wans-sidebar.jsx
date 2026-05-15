@@ -50,8 +50,8 @@ const ROLE_NAV = {
   ],
   STATE_HEAD: [
     { group: 'Overview', items: [
-      { path: '/app/dashboard-v2',     label: 'Dashboard',       icon: LayoutDashboard },
-      { path: '/app/zonal-employees',  label: 'Zonal Employees', icon: Globe },
+      { path: '/app/dashboard-v2',    label: 'Dashboard',  icon: LayoutDashboard },
+      { path: '/app/zonal-employees', label: 'ZM Team',    icon: Globe },
     ]},
     { group: 'Finance', items: [
       { path: '/app/commission',  label: 'Commissions', icon: DollarSign },
@@ -59,9 +59,12 @@ const ROLE_NAV = {
       { path: '/app/my-rewards',  label: 'My Rewards',  icon: Award },
       { path: '/app/my-payouts',  label: 'My Payouts',  icon: Banknote },
     ]},
+    { group: 'Reports', items: [
+      { path: '/app/performance', label: 'Performance', icon: Activity },
+    ]},
     { group: 'Account', items: [
       { path: '/app/kyc',      label: 'KYC Verification', icon: UserCheck },
-      { path: '/app/settings', label: 'Settings',        icon: Settings },
+      { path: '/app/settings', label: 'Settings',         icon: Settings },
     ]},
   ],
   ZONAL_MANAGER: [
@@ -82,8 +85,8 @@ const ROLE_NAV = {
   ],
   AREA_MANAGER: [
     { group: 'Overview', items: [
-      { path: '/app/dashboard-v2', label: 'Dashboard',    icon: LayoutDashboard },
-      { path: '/app/do-employees', label: 'DO Employees', icon: UserCog },
+      { path: '/app/dashboard-v2', label: 'Dashboard',  icon: LayoutDashboard },
+      { path: '/app/do-employees', label: 'DO Team',    icon: UserCog },
     ]},
     { group: 'Finance', items: [
       { path: '/app/commission',  label: 'Commissions', icon: DollarSign },
@@ -93,13 +96,13 @@ const ROLE_NAV = {
     ]},
     { group: 'Account', items: [
       { path: '/app/kyc',      label: 'KYC Verification', icon: UserCheck },
-      { path: '/app/settings', label: 'Settings',        icon: Settings },
+      { path: '/app/settings', label: 'Settings',         icon: Settings },
     ]},
   ],
   DO_MANAGER: [
     { group: 'Overview', items: [
-      { path: '/app/dashboard-v2', label: 'Dashboard',   icon: LayoutDashboard },
-      { path: '/app/advisors',     label: 'Advisors',    icon: UserCheck },
+      { path: '/app/dashboard-v2', label: 'Dashboard',  icon: LayoutDashboard },
+      { path: '/app/advisors',     label: 'PR Team',    icon: UserCheck },
       { path: '/app/performance',  label: 'Performance', icon: Activity },
     ]},
     { group: 'Finance', items: [

@@ -244,11 +244,11 @@ export default function AdminBenefitClaimsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Roles</SelectItem>
-                  <SelectItem value="ADVISOR">Advisor</SelectItem>
-                  <SelectItem value="DO_MANAGER">DO Manager</SelectItem>
-                  <SelectItem value="AREA_MANAGER">Area Manager</SelectItem>
-                  <SelectItem value="ZONAL_MANAGER">Zonal Manager</SelectItem>
-                  <SelectItem value="STATE_HEAD">State Head</SelectItem>
+                  <SelectItem value="ADVISOR">Promotion Representative (PR)</SelectItem>
+                  <SelectItem value="DO_MANAGER">Development Officer (DO)</SelectItem>
+                  <SelectItem value="AREA_MANAGER">Regional Manager (RM)</SelectItem>
+                  <SelectItem value="ZONAL_MANAGER">Zonal Manager (ZM)</SelectItem>
+                  <SelectItem value="STATE_HEAD">Executive Manager (EM)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

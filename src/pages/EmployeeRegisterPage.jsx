@@ -275,7 +275,9 @@ export default function EmployeeRegisterPage() {
                         onValueChange={(value) => handleChange('appliedRole', value)}
                       >
                         <SelectTrigger className={errors.appliedRole ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Choose a role" />
+                          {formData.appliedRole
+                            ? <span>{EMPLOYEE_ROLES.find(r => r.value === formData.appliedRole)?.label}</span>
+                            : <span className="text-muted-foreground">Choose a role</span>}
                         </SelectTrigger>
                         <SelectContent>
                           {EMPLOYEE_ROLES.map(role => (

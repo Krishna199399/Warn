@@ -279,7 +279,7 @@ export default function EmployeeRegisterPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {EMPLOYEE_ROLES.map(role => (
-                            <SelectItem key={role.value} value={role.value}>
+                            <SelectItem key={role.value} value={role.value} textValue={role.label}>
                               <div>
                                 <div className="font-medium">{role.label}</div>
                                 <div className="text-xs text-gray-500">{role.description}</div>

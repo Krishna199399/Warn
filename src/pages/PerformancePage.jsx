@@ -113,7 +113,7 @@ export default function PerformancePage() {
             format="number"
           />
           <StatCard
-            label="Advisors"
+            label="Promotion Reps"
             value={advisors.length}
             icon={Award}
             format="number"
@@ -176,14 +176,14 @@ export default function PerformancePage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Advisors in my team</CardTitle>
+          <CardTitle className="text-sm">Promotion Reps in my team</CardTitle>
         </CardHeader>
         <div className="divide-y divide-border">
           {advisors.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No advisors assigned yet"
-              description="Advisors will appear here once they join your team"
+              title="No Promotion Reps assigned yet"
+              description="Promotion Reps will appear here once they join your team"
             />
           ) : (
             advisors.slice(0, 10).map(advisor => (

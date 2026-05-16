@@ -350,7 +350,7 @@ export default function AreaManagerDashboard() {
             {welcome}, {user?.name}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Area Manager · {user?.region || 'Region'}
+            Regional Manager · {user?.region || 'Region'}
             {user?.employeeCode && <span className="font-mono"> · {user.employeeCode}</span>}
           </p>
         </div>
@@ -390,7 +390,7 @@ export default function AreaManagerDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Advisors</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Promotion Reps</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -398,7 +398,7 @@ export default function AreaManagerDashboard() {
               {teamMetrics.activeAdvisors} / {teamMetrics.totalAdvisors}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Advisors under your DOs
+              Promotion Reps under your DOs
             </p>
           </CardContent>
         </Card>
@@ -671,7 +671,7 @@ export default function AreaManagerDashboard() {
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead>Farmer</TableHead>
-                <TableHead>Advisor</TableHead>
+                <TableHead>Promotion Rep.</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>

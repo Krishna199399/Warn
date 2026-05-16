@@ -208,7 +208,7 @@ export default function AdminPayoutsPage() {
           <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="advisors" className="gap-2">
               <UserCheck size={14} />
-              <span className="hidden sm:inline">Advisors</span>
+              <span className="hidden sm:inline">Promo. Reps</span>
             </TabsTrigger>
             <TabsTrigger value="employees" className="gap-2">
               <Briefcase size={14} />
@@ -243,14 +243,14 @@ export default function AdminPayoutsPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <UserCheck size={16} className="text-blue-600" />
-                Advisor Payouts
+                Promotion Rep. Payouts
               </CardTitle>
-              <p className="text-xs text-muted-foreground">Retail Points (RP) commissions and monthly salary for Advisors</p>
+              <p className="text-xs text-muted-foreground">Retail Points (RP) commissions and monthly salary for Promotion Representatives</p>
             </CardHeader>
             <CardContent>
               {filteredBatches.length === 0 ? (
                 <div className="p-10 text-center text-sm text-muted-foreground">
-                  No advisor payout batches yet. Generate one to get started.
+                  No Promotion Rep. payout batches yet. Generate one to get started.
                 </div>
               ) : (
                 <div className="divide-y divide-border">
@@ -464,7 +464,7 @@ export default function AdminPayoutsPage() {
           <DialogHeader>
             <DialogTitle>Generate Payout Batch</DialogTitle>
             <DialogDescription>
-              {activeTab === 'advisors' && 'Generate Retail Points (RP) or Salary batch for Advisors'}
+              {activeTab === 'advisors' && 'Generate Retail Points (RP) or Salary batch for Promotion Representatives'}
               {activeTab === 'employees' && 'Generate Incentive Value (IV) or Salary batch for Employees'}
               {activeTab === 'ministock' && 'Generate commission batch for Mini Stock users'}
               {activeTab === 'wholesale' && 'Generate commission batch for Wholesale users'}
@@ -483,7 +483,7 @@ export default function AdminPayoutsPage() {
                         <SelectItem value="RP_END">RP End-Month (15th-end)</SelectItem>
                       </SelectGroup>
                       <SelectGroup><SelectLabel>Salary</SelectLabel>
-                        <SelectItem value="ADVISOR_SALARY">Advisor Monthly Salary</SelectItem>
+                        <SelectItem value="ADVISOR_SALARY">Promotion Rep. Monthly Salary</SelectItem>
                       </SelectGroup>
                     </>
                   )}

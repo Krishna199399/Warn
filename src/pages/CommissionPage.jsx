@@ -254,8 +254,8 @@ export default function CommissionPage() {
             <p className="text-sm font-semibold text-blue-900">Understanding Your Commission</p>
             <p className="text-xs text-blue-700 mt-1 leading-relaxed">
               {user?.role === 'ADVISOR'
-                ? <><strong>RP (Retail Point):</strong> Advisor earns 100% of the product's RP value × qty sold.</>
-                : <><strong>RP:</strong> Advisor earns 100% RP × qty.&nbsp; <strong>IV:</strong> DO 42% → AM 23% → ZM 15% → SH 10%.&nbsp; <strong>SV/RV:</strong> Advisor 42% + DO 23% + AM 15% + ZM 10% + SH 10%.</>
+                ? <><strong>RP (Retail Point):</strong> Promotion Rep. earns 100% of the product's RP value × qty sold.</>
+                : <><strong>RP:</strong> PR earns 100% RP × qty.&nbsp; <strong>IV:</strong> DO 42% → RM 23% → ZM 15% → EM 10%.&nbsp; <strong>SV/RV:</strong> PR 42% + DO 23% + RM 15% + ZM 10% + EM 10%.</>
               }
             </p>
           </div>

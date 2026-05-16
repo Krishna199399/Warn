@@ -142,7 +142,7 @@ export default function RegistrationSelectionPage() {
                 <div className="flex items-start gap-3 p-3 bg-stone-50 rounded-lg border border-stone-200">
                   <Users className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-sm text-stone-800">State Head</h3>
+                    <h3 className="font-semibold text-sm text-stone-800">Executive Manager</h3>
                     <p className="text-xs text-stone-600">Manages entire state operations</p>
                   </div>
                 </div>
@@ -151,14 +151,14 @@ export default function RegistrationSelectionPage() {
                   <Users className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
                     <h3 className="font-semibold text-sm text-stone-800">Managers</h3>
-                    <p className="text-xs text-stone-600">Zonal, Area, and DO Managers</p>
+                    <p className="text-xs text-stone-600">Zonal, Regional, and Development Officers</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-3 p-3 bg-stone-50 rounded-lg border border-stone-200">
                   <Users className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-sm text-stone-800">Field Advisor</h3>
+                    <h3 className="font-semibold text-sm text-stone-800">Promotion Representative</h3>
                     <p className="text-xs text-stone-600">Direct customer engagement</p>
                   </div>
                 </div>

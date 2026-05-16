@@ -45,8 +45,8 @@ export default function AdvisorsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Advisors"
-        description="All advisors in your downline"
+        title="Promotion Representatives"
+        description="All Promotion Representatives in your downline"
         actions={
           (advisors?.length > 0) && (
             <Button variant="outline" size="sm" onClick={() => exportCSV(advisors.map(a => ({ Name:a.name, Code:a.employeeCode, Parent:a.parentId?.name||'Not Assigned', 'Parent Role':a.parentId?.role?.replace(/_/g,' ')||'—', Region:a.region||'—', Phone:a.phone, Status:a.status })), 'advisors')}>
@@ -58,7 +58,7 @@ export default function AdvisorsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Advisors" value={advisors?.length || 0} icon={Users} />
+        <StatCard label="Total Promotion Reps" value={advisors?.length || 0} icon={Users} />
         <StatCard label="Active" value={active} icon={UserCheck} />
         <StatCard label="Inactive" value={(advisors?.length || 0) - active} icon={TrendingUp} />
       </div>
@@ -73,11 +73,11 @@ export default function AdvisorsPage() {
         </div>
         <Table>
           <TableHeader>
-            <TableRow>{['Advisor','Code','Parent (DO)','Region','Status','Actions'].map(h=><TableHead key={h}>{h}</TableHead>)}</TableRow>
+            <TableRow>{['Promotion Rep.','Code','Parent (DO)','Region','Status','Actions'].map(h=><TableHead key={h}>{h}</TableHead>)}</TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">{search ? 'No matching advisors.' : 'No advisors found.'}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">{search ? 'No matching Promotion Reps.' : 'No Promotion Representatives found.'}</TableCell></TableRow>
             ) : filtered.map(a => (
               <TableRow key={a._id}>
                 <TableCell>
@@ -110,7 +110,7 @@ export default function AdvisorsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{assignModal?.currentParent ? 'Reassign Parent' : 'Assign Parent'}</DialogTitle>
-            <DialogDescription>Advisor: <strong>{assignModal?.advisorName}</strong></DialogDescription>
+            <DialogDescription>Promotion Rep.: <strong>{assignModal?.advisorName}</strong></DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {assignModal?.currentParent && (
@@ -121,9 +121,9 @@ export default function AdvisorsPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>Select DO Manager {assignModal?.currentParent && '(New Parent)'}</Label>
+              <Label>Select Development Officer {assignModal?.currentParent && '(New Parent)'}</Label>
               <Select value={selectedParent} onValueChange={setSelectedParent}>
-                <SelectTrigger><SelectValue placeholder="-- Select DO Manager --" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="-- Select Development Officer --" /></SelectTrigger>
                 <SelectContent>
                   {(doManagers || []).map(dm => (
                     <SelectItem key={dm._id} value={dm._id}>{dm.name} — {dm.region||'No Region'}</SelectItem>

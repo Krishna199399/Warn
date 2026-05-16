@@ -432,14 +432,14 @@ export default function POSPage() {
                               <Award size={14} className="text-amber-600" />
                             </div>
                             <div>
-                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Advisor</p>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Promotion Rep.</p>
                               {firstItem.advisorId ? (
                                 <>
                                   <p className="font-medium text-sm text-foreground">{firstItem.advisorId.name}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5 font-mono">Code: {firstItem.advisorId.advisorCode}</p>
                                 </>
                               ) : (
-                                <p className="text-sm text-muted-foreground italic mt-1">No advisor assigned</p>
+                                <p className="text-sm text-muted-foreground italic mt-1">No Promotion Rep. assigned</p>
                               )}
                             </div>
                           </div>

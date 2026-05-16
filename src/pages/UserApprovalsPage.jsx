@@ -107,7 +107,7 @@ export default function UserApprovalsPage() {
         // STATE_HEAD doesn't need parent
         if (user.role === 'STATE_HEAD') {
           await usersApi.approveEmployeeRegistration(userId);
-          toast.success(`${user.name} approved as State Head!`);
+          toast.success(`${user.name} approved as Executive Manager!`);
         } else {
           // Other employee roles need parent assignment
           if (!user.parentId && !selectedParent[userId]) {
@@ -372,7 +372,7 @@ export default function UserApprovalsPage() {
                         <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                           <Briefcase className="w-4 h-4 text-purple-600" />
                           <span className="text-sm font-medium text-purple-900">
-                            Top-level position - No parent assignment required
+                            Top-level position (Executive Manager) - No parent assignment required
                           </span>
                         </div>
                       )}

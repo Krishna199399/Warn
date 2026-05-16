@@ -10,6 +10,8 @@ import { categoriesApi } from '../api/categories.api';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPageVerdant() {
   const navigate = useNavigate();
@@ -28,6 +30,11 @@ export default function LandingPageVerdant() {
   const subtitleRef = useRef(null);
   const ctaRef = useRef(null);
   const statsRef = useRef(null);
+  const categoryRef = useRef(null);
+  const productsRef = useRef(null);
+  const featuresRef = useRef(null);
+  const reviewsRef = useRef(null);
+  const ctaSectionRef = useRef(null);
 
   useEffect(() => {
     loadProducts();
@@ -64,6 +71,41 @@ export default function LandingPageVerdant() {
 
     return () => ctx.revert();
   }, []);
+
+  // Scroll-triggered reveals
+  useEffect(() => {
+    if (productsLoading || categoriesLoading) return;
+    const sections = [
+      { ref: categoryRef, selector: '.cat-card' },
+      { ref: productsRef, selector: '.prod-card' },
+      { ref: featuresRef, selector: '.feat-card' },
+      { ref: ctaSectionRef, selector: '.cta-inner' },
+    ];
+    const triggers = [];
+    sections.forEach(({ ref, selector }) => {
+      if (!ref.current) return;
+      const els = ref.current.querySelectorAll(selector);
+      if (!els.length) return;
+      const t = gsap.fromTo(els,
+        { y: 40, opacity: 0 },
+        {
+          y: 0, opacity: 1, duration: 0.7, stagger: 0.1, ease: 'power3.out',
+          scrollTrigger: { trigger: ref.current, start: 'top 82%', once: true },
+        }
+      );
+      triggers.push(t);
+    });
+    // Reviews
+    if (reviewsRef.current) {
+      const t = gsap.fromTo(reviewsRef.current,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: reviewsRef.current, start: 'top 85%', once: true } }
+      );
+      triggers.push(t);
+    }
+    return () => triggers.forEach(t => t.scrollTrigger?.kill());
+  }, [productsLoading, categoriesLoading]);
 
   const loadProducts = async () => {
     try {
@@ -230,13 +272,14 @@ export default function LandingPageVerdant() {
             alt="Organic farming" 
             className="h-full w-full object-cover object-center"
           />
-          {/* Elegant Dark Forest Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0A2318]/95 via-[#0A2318]/80 to-transparent" />
-          <div className="absolute inset-0 bg-black/20 md:hidden" /> {/* Extra darkening for mobile */}
+          {/* Improved Gradient Overlay - Softer and more natural */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A2318]/90 via-[#0A2318]/60 to-[#0A2318]/30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0A2318]/40" />
+          <div className="absolute inset-0 bg-black/15 md:hidden" /> {/* Subtle darkening for mobile */}
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-[#1A4D33]/40 blur-[100px]" />
+        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-[#1A4D33]/30 blur-[120px]" />
 
         {/* Content */}
         <div className="relative mx-auto w-full max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
@@ -297,12 +340,11 @@ export default function LandingPageVerdant() {
           </div>
         </div>
 
-        {/* Bottom Fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-stone-50 to-transparent" />
+
       </section>
 
       {/* Shop by Category Section */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="mx-auto max-w-7xl px-4 pt-6 pb-16 sm:px-6 lg:px-8 lg:pb-20" ref={categoryRef}>
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">BROWSE</p>
@@ -323,40 +365,71 @@ export default function LandingPageVerdant() {
             <p className="text-sm text-slate-400 mt-2">Admin can add categories from the admin panel.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((category) => (
-              <button
-                key={category._id}
-                onClick={() => navigate('/products')}
-                className="group flex flex-col items-center gap-3 rounded-3xl border border-slate-100 bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="relative h-20 w-20 overflow-hidden rounded-2xl bg-slate-50">
-                  {category.image ? (
-                    <img 
-                      src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${category.image}`}
-                      alt={category.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          /* ── Editorial Bento Grid ── */
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[180px] lg:auto-rows-[220px]">
+            {categories.map((cat, i) => {
+              const imgSrc = cat.image
+                ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${cat.image}`
+                : null;
+              // First card spans 2 cols + 2 rows; next 2 span 2 rows; rest are 1×1
+              const spanClass =
+                i === 0 ? 'col-span-2 row-span-2' :
+                i === 1 ? 'col-span-1 row-span-2' :
+                i === 2 ? 'col-span-1 row-span-2' :
+                'col-span-1 row-span-1';
+              return (
+                <button
+                  key={cat._id}
+                  onClick={() => navigate('/products')}
+                  className={`cat-card group relative overflow-hidden rounded-3xl bg-slate-100 cursor-pointer ${spanClass}`}
+                >
+                  {/* Background image */}
+                  {imgSrc ? (
+                    <img
+                      src={imgSrc}
+                      alt={cat.name}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Leaf size={32} className="text-green-200" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-900 to-emerald-700 flex items-center justify-center">
+                      <Leaf size={i === 0 ? 64 : 40} className="text-white/30" />
                     </div>
                   )}
-                </div>
-                <div className="text-center">
-                  <h3 className="font-medium text-sm text-slate-900">{category.name}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {category.productCount || 0} item{category.productCount !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </button>
-            ))}
+
+                  {/* Dark gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A2318]/80 via-[#0A2318]/20 to-transparent" />
+
+                  {/* Hover shimmer */}
+                  <div className="absolute inset-0 bg-[#A2E2A6]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Text overlay — frosted glass */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
+                    <div className="inline-block backdrop-blur-md bg-white/10 border border-white/20 rounded-2xl px-3 py-2">
+                      <h3
+                        className="font-semibold text-white text-sm lg:text-base leading-tight"
+                        style={{ fontFamily: "'Syne', sans-serif" }}
+                      >
+                        {cat.name}
+                      </h3>
+                      <p className="text-[10px] lg:text-xs text-white/70 mt-0.5 font-medium">
+                        {cat.productCount || 0} product{cat.productCount !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Arrow on hover */}
+                  <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/0 group-hover:bg-white/20 border border-white/0 group-hover:border-white/30 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
+                    <ArrowRight className="h-4 w-4 text-white" />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
 
       {/* Products Section */}
-      <section id="products" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section id="products" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20" ref={productsRef}>
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Hand-picked</p>
@@ -372,17 +445,17 @@ export default function LandingPageVerdant() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((product) => (
-              <div 
-                key={product._id} 
+              <div
+                key={product._id}
                 onClick={() => navigate(`/products/${product._id}`)}
-                className="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+                className="prod-card group relative flex flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:border-green-100 cursor-pointer"
               >
                 <div className="relative aspect-square overflow-hidden bg-slate-50">
                   {product.image ? (
                     <img
                       src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${product.image}`}
                       alt={product.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center">
@@ -392,13 +465,16 @@ export default function LandingPageVerdant() {
                   <span className="absolute top-3 left-3 rounded-full bg-green-600 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
                     {product.category}
                   </span>
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A2318]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
 
                 <div className="flex flex-1 flex-col p-4">
                   <p className="text-[11px] uppercase tracking-wider text-slate-500">{product.category}</p>
                   <h3 className="mt-1 line-clamp-2 font-medium text-sm text-slate-900 min-h-10">{product.name}</h3>
 
-                  <div className="mt-2 flex items-center gap-1.5">
+                  {/* Rating — hidden until hover */}
+                  <div className="mt-2 flex items-center gap-1.5 overflow-hidden max-h-0 group-hover:max-h-10 transition-all duration-300 opacity-0 group-hover:opacity-100">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     <span className="text-xs font-medium">4.8</span>
                     <span className="text-xs text-slate-500">(124)</span>
@@ -410,9 +486,12 @@ export default function LandingPageVerdant() {
                     </div>
                   </div>
 
-                  <button className="mt-4 w-full btn-primary text-sm">
-                    <ShoppingCart className="h-4 w-4" /> View Details
-                  </button>
+                  {/* Button — hidden until hover */}
+                  <div className="overflow-hidden max-h-0 group-hover:max-h-14 transition-all duration-300 mt-0 group-hover:mt-4">
+                    <button className="w-full btn-primary text-sm">
+                      <ShoppingCart className="h-4 w-4" /> View Details
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -420,21 +499,46 @@ export default function LandingPageVerdant() {
         )}
       </section>
 
-      {/* Why Choose Us */}
-      <section className="bg-slate-50 py-16 lg:py-20">
+      {/* Why Choose Us — Asymmetric Bento */}
+      <section className="py-16 lg:py-24" ref={featuresRef}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Why Warnamayii</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>Rooted in trust, grown with care</h2>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Why Warnamayii</p>
+              <h2 className="mt-2 text-4xl lg:text-5xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>Rooted in trust,<br />grown with care</h2>
+            </div>
+            <p className="max-w-sm text-slate-500 text-sm leading-relaxed">Every product we carry passes through rigorous quality checks before reaching your doorstep.</p>
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((f, i) => (
-              <div key={i} className="flex flex-col p-6 bg-white rounded-2xl border border-slate-100 hover:shadow-lg transition-shadow">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100">
-                  <f.icon className="h-6 w-6 text-green-600" />
+
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[180px]">
+            {/* Large hero feature card — 2 cols × 2 rows */}
+            <div className="feat-card sm:col-span-2 lg:col-span-2 lg:row-span-2 group relative overflow-hidden rounded-3xl bg-[#0A2318] p-8 flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#A2E2A6]/10 rounded-full blur-3xl" />
+              <span className="text-6xl font-bold text-[#A2E2A6]/30 select-none" style={{ fontFamily: "'Syne', sans-serif" }}>01</span>
+              <div>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#A2E2A6]/15 mb-4">
+                  <Leaf className="h-7 w-7 text-[#A2E2A6]" />
                 </div>
-                <h3 className="mt-4 font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{f.description}</p>
+                <h3 className="text-xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>{features[0].title}</h3>
+                <p className="mt-2 text-sm text-slate-400 leading-relaxed max-w-xs">{features[0].description}</p>
+              </div>
+            </div>
+
+            {/* Regular feature cards — card 04 (last) spans 2 cols to fill the gap */}
+            {features.slice(1).map((f, i) => (
+              <div
+                key={i}
+                className={`feat-card group relative overflow-hidden rounded-3xl bg-white border border-slate-100 p-6 flex flex-col justify-between hover:border-green-200 hover:shadow-xl transition-all duration-300 ${i === 2 ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+              >
+                <span className="text-4xl font-bold text-slate-100 group-hover:text-green-100 transition-colors" style={{ fontFamily: "'Syne', sans-serif" }}>0{i + 2}</span>
+                <div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 group-hover:bg-green-600 transition-colors duration-300 mb-3">
+                    <f.icon className="h-5 w-5 text-green-600 group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <h3 className="font-semibold text-slate-900 text-sm">{f.title}</h3>
+                  <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">{f.description}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -442,7 +546,7 @@ export default function LandingPageVerdant() {
       </section>
 
       {/* Reviews */}
-      <section className="py-16 lg:py-20 overflow-hidden">
+      <section className="py-16 lg:py-20 overflow-hidden" ref={reviewsRef}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <p className="text-xs font-semibold uppercase tracking-wider text-green-600">Loved by growers</p>
@@ -495,87 +599,97 @@ export default function LandingPageVerdant() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-        <div className="rounded-[2.5rem] bg-gradient-to-br from-slate-50 to-green-50 border border-slate-100 p-10 sm:p-16 text-center shadow-sm">
-          <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-1.5 text-xs font-medium text-green-700">
-            <Leaf className="h-3.5 w-3.5" /> Join 12,000+ growers
-          </span>
-          <h2 className="mt-5 text-4xl sm:text-5xl font-semibold tracking-tight max-w-2xl mx-auto" style={{ fontFamily: "'Syne', sans-serif" }}>
-            Start your sustainable journey today
-          </h2>
-          <p className="mt-4 max-w-xl mx-auto text-slate-600">
-            Get exclusive offers, growing guides and early access to new products delivered straight to your inbox.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {user ? (
-              <button onClick={() => navigate('/products')} className="btn-primary px-10 py-4 text-lg">
-                Get Started <ArrowRight className="h-5 w-5" />
-              </button>
-            ) : (
-              <>
-                <button onClick={() => navigate('/register-select')} className="btn-primary px-10 py-4 text-lg">
-                  Get Started <ArrowRight className="h-5 w-5" />
+      {/* CTA — Dark Forest Glassmorphism */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16" ref={ctaSectionRef}>
+        <div className="cta-inner relative overflow-hidden rounded-[2.5rem] bg-[#0A2318] p-10 sm:p-16 text-center">
+          {/* Decorative orbs */}
+          <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-[#A2E2A6]/10 blur-3xl" />
+          <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-[#1A4D33]/60 blur-[80px]" />
+
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#A2E2A6]/30 bg-[#1A4D33]/60 backdrop-blur-md px-4 py-1.5 text-xs font-semibold text-[#A2E2A6] uppercase tracking-wider">
+              <Leaf className="h-3.5 w-3.5" /> Join 12,000+ growers
+            </span>
+            <h2 className="mt-6 text-4xl sm:text-5xl font-bold tracking-tight text-white max-w-2xl mx-auto" style={{ fontFamily: "'Syne', sans-serif" }}>
+              Start your sustainable<br />journey today
+            </h2>
+            <p className="mt-4 max-w-xl mx-auto text-stone-400 leading-relaxed">
+              Get exclusive offers, growing guides and early access to new products delivered straight to your inbox.
+            </p>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              {user ? (
+                <button onClick={() => navigate('/products')} className="group rounded-full bg-[#A2E2A6] text-[#0A2318] px-10 py-4 text-base font-semibold hover:bg-white transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl hover:-translate-y-1">
+                  Shop Now <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button onClick={() => navigate('/login')} className="btn-secondary px-10 py-4 text-lg">
-                  Login
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button onClick={() => navigate('/register-select')} className="group rounded-full bg-[#A2E2A6] text-[#0A2318] px-10 py-4 text-base font-semibold hover:bg-white transition-all duration-300 inline-flex items-center gap-2 shadow-xl hover:shadow-2xl hover:-translate-y-1">
+                    Get Started <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button onClick={() => navigate('/login')} className="rounded-full border border-stone-500 text-white px-10 py-4 text-base font-medium hover:bg-white/10 transition-all duration-300">
+                    Login
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-24 border-t border-amber-200/60 bg-gradient-to-br from-amber-100/50 via-stone-100/40 to-orange-100/50 backdrop-blur-sm">
+      {/* Footer — Premium Dark */}
+      <footer className="bg-[#050F0A] border-t border-white/5">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-            <div>
+            <div className="lg:col-span-1">
               <button onClick={() => navigate('/')} className="flex items-center gap-2">
-                <img src="/logo-full.png" srcSet="/logo-full@2x.png 2x, /logo-full@3x.png 3x" alt="Warnamayii Krishi Resources" className="h-10" />
+                <img src="/logo-full.png" srcSet="/logo-full@2x.png 2x, /logo-full@3x.png 3x" alt="Warnamayii Krishi Resources" className="h-10 brightness-0 invert" />
               </button>
-              <p className="mt-4 text-sm text-slate-600 leading-relaxed max-w-xs">
-                Cultivating a greener tomorrow with organic essentials, trusted by farmers and home gardeners.
+              <p className="mt-4 text-sm text-stone-500 leading-relaxed max-w-xs">
+                Cultivating a greener tomorrow with organic essentials, trusted by 12,000+ farmers nationwide.
               </p>
+              <div className="mt-6 flex gap-3">
+                {['FB', 'IG', 'TW'].map(s => (
+                  <a key={s} href="#" className="h-9 w-9 rounded-full border border-white/10 flex items-center justify-center text-stone-500 hover:border-[#A2E2A6]/40 hover:text-[#A2E2A6] transition-colors text-xs font-bold">{s}</a>
+                ))}
+              </div>
             </div>
 
             <div>
-              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">Shop</h4>
-              <ul className="space-y-3 text-sm text-slate-600">
-                <li><Link to="/app/products" className="hover:text-green-600">All Products</Link></li>
-                <li><Link to="/categories" className="hover:text-green-600">Categories</Link></li>
+              <h4 className="font-semibold text-xs uppercase tracking-widest text-stone-500 mb-5">Shop</h4>
+              <ul className="space-y-3 text-sm text-stone-400">
+                <li><Link to="/products" className="hover:text-[#A2E2A6] transition-colors">All Products</Link></li>
+                <li><Link to="/categories" className="hover:text-[#A2E2A6] transition-colors">Categories</Link></li>
+                <li><Link to="/about" className="hover:text-[#A2E2A6] transition-colors">About Us</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">Resources</h4>
-              <ul className="space-y-3 text-sm text-slate-600">
-                <li><Link to="/about" className="hover:text-green-600">About Us</Link></li>
-                <li><a href="#" className="hover:text-green-600">Help Center</a></li>
-                <li><a href="#" className="hover:text-green-600">Shipping Info</a></li>
+              <h4 className="font-semibold text-xs uppercase tracking-widest text-stone-500 mb-5">Support</h4>
+              <ul className="space-y-3 text-sm text-stone-400">
+                <li><a href="#" className="hover:text-[#A2E2A6] transition-colors">Help Center</a></li>
+                <li><a href="#" className="hover:text-[#A2E2A6] transition-colors">Shipping Info</a></li>
+                <li><a href="#" className="hover:text-[#A2E2A6] transition-colors">Returns</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">Newsletter</h4>
-              <p className="text-sm text-slate-600 mb-4">Get growing tips & 10% off your first order.</p>
+              <h4 className="font-semibold text-xs uppercase tracking-widest text-stone-500 mb-5">Newsletter</h4>
+              <p className="text-sm text-stone-500 mb-4">Growing tips &amp; 10% off your first order.</p>
               <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="you@email.com"
-                  className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:border-green-600"
-                />
-                <button className="btn-primary text-sm">Join</button>
+                <input type="email" placeholder="you@email.com"
+                  className="flex-1 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white outline-none placeholder:text-stone-600 focus:border-[#A2E2A6]/40" />
+                <button className="rounded-full bg-[#A2E2A6] text-[#0A2318] px-4 py-2 text-sm font-semibold hover:bg-white transition-colors">Join</button>
               </div>
             </div>
           </div>
 
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 pt-6 text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} Warnamayii Agri Network System. All rights reserved.</p>
-            <div className="flex gap-5">
-              <a href="#" className="hover:text-green-600">Privacy</a>
-              <a href="#" className="hover:text-green-600">Terms</a>
-              <a href="#" className="hover:text-green-600">Cookies</a>
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/5 pt-6">
+            <p className="text-xs text-stone-600">© {new Date().getFullYear()} Warnamayii Agri Network System. All rights reserved.</p>
+            <div className="flex gap-5 text-xs text-stone-600">
+              <a href="#" className="hover:text-[#A2E2A6] transition-colors">Privacy</a>
+              <a href="#" className="hover:text-[#A2E2A6] transition-colors">Terms</a>
+              <a href="#" className="hover:text-[#A2E2A6] transition-colors">Cookies</a>
             </div>
           </div>
         </div>

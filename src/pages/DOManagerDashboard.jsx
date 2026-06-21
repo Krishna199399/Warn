@@ -300,7 +300,7 @@ export default function DOManagerDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {downline.length === 0 ? (
+          {loading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />

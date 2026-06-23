@@ -18,7 +18,7 @@ export default function PublicCartPage() {
 
       {/* Cart Content */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <h1 className="text-5xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Your Cart</h1>
+        <h1 className="text-5xl font-semibold tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>Your Cart</h1>
         <p className="mt-2 text-slate-600">{cart.length} {cart.length === 1 ? "item" : "items"} · sustainable shipping included</p>
 
         {cart.length === 0 ? (
@@ -26,7 +26,7 @@ export default function PublicCartPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100/80 text-amber-700 mb-4">
               <ShoppingBag className="h-8 w-8" />
             </div>
-            <h2 className="text-2xl font-semibold" style={{ fontFamily: "'Playfair Display', serif" }}>Your cart is empty</h2>
+            <h2 className="text-2xl font-semibold" style={{ fontFamily: "'Montserrat', sans-serif" }}>Your cart is empty</h2>
             <p className="text-slate-600 mt-2">Time to fill it with something organic.</p>
             <button onClick={() => navigate('/products')} className="rounded-full bg-amber-600/90 hover:bg-amber-700/90 backdrop-blur-sm shadow-md text-white px-8 py-3 font-medium mt-6">
               Browse products
@@ -84,7 +84,7 @@ export default function PublicCartPage() {
             </div>
 
             <aside className="rounded-3xl border border-amber-200/60 bg-white/80 backdrop-blur-sm p-6 h-fit lg:sticky lg:top-24 shadow-md">
-              <h2 className="text-xl font-semibold" style={{ fontFamily: "'Playfair Display', serif" }}>Order Summary</h2>
+              <h2 className="text-xl font-semibold" style={{ fontFamily: "'Montserrat', sans-serif" }}>Order Summary</h2>
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-slate-600">Subtotal</dt>

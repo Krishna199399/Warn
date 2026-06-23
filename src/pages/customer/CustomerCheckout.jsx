@@ -111,7 +111,7 @@ export default function CustomerCheckout() {
         <PublicNavbar />
         <div className="p-6 max-w-7xl mx-auto text-center py-20">
           <Package className="h-16 w-16 text-amber-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-slate-900 mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Your cart is empty</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>Your cart is empty</h1>
           <p className="text-slate-600 mb-6">Add some products before checking out</p>
           <Button onClick={() => navigate('/products')} className="bg-amber-600/90 hover:bg-amber-700/90 backdrop-blur-sm shadow-md text-white">
             Browse Products
@@ -135,7 +135,7 @@ export default function CustomerCheckout() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>Checkout</h1>
+            <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Checkout</h1>
             <p className="text-slate-600 mt-1">Complete your order</p>
           </div>
         </div>
@@ -403,7 +403,7 @@ export default function CustomerCheckout() {
           <div className="space-y-6">
             <Card className="border-amber-200/60 bg-white/80 backdrop-blur-sm sticky top-24">
               <CardHeader>
-                <CardTitle style={{ fontFamily: "'Playfair Display', serif" }}>Order Summary</CardTitle>
+                <CardTitle style={{ fontFamily: "'Montserrat', sans-serif" }}>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3 text-sm">

@@ -47,7 +47,7 @@ export default function ImageUploader({ value, previewUrl, onChange, onClear }) 
           <button
             type="button"
             onClick={onClear}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-transparent backdrop-blur-sm
                        flex items-center justify-center text-slate-500 hover:text-red-600
                        shadow-md transition-all hover:scale-110"
           >

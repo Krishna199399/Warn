@@ -59,7 +59,7 @@ export default function CustomerOrders() {
       <div className="p-6 max-w-7xl mx-auto space-y-6 py-12">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "'Playfair Display', serif" }}>My Orders</h1>
+          <h1 className="text-3xl font-bold text-slate-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>My Orders</h1>
           <p className="text-slate-600 mt-1">Track and manage your orders</p>
         </div>
 

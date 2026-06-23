@@ -174,7 +174,7 @@ export default function PublicProductDetailPage() {
                 </div>
 
                 {/* Product Name */}
-                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{product.name}</h1>
+                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>{product.name}</h1>
 
                 {/* Rating */}
                 <div className="flex items-center gap-2">
@@ -306,7 +306,7 @@ export default function PublicProductDetailPage() {
             {relatedProducts.length > 0 && (
               <div className="mt-16">
                 <div className="mb-6">
-                  <h2 className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Related Products</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>Related Products</h2>
                   <p className="text-slate-600 mt-1 text-sm">More products from the same category</p>
                 </div>
 

@@ -303,23 +303,13 @@ export default function LandingPageVerdant() {
 
       {/* Hero Section */}
       <section id="home" className="relative overflow-hidden min-h-[600px] lg:min-h-[700px] flex items-center pt-24 lg:pt-32" ref={heroRef}>
-        {/* Background Video - Split Overlay */}
+        {/* Background Image - Split Overlay */}
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
+          <img 
+            src="/hero_bg.png" 
+            alt="Organic farming" 
             className="h-full w-full object-cover object-center"
-            poster="/hero-farm.jpg"
-          >
-            <source src="/hero_bg.mp4" type="video/mp4" />
-            <img 
-              src="/hero-farm.jpg" 
-              alt="Organic farming" 
-              className="h-full w-full object-cover object-center"
-            />
-          </video>
+          />
           {/* Subtle dark gradient overlay at the bottom for text legibility */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
         </div>

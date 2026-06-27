@@ -378,10 +378,10 @@ export default function LandingPageVerdant() {
 
       {/* Shop by Category Section */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12" ref={categoryRef}>
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex items-end justify-between mb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">BROWSE</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>Shop by Category</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight" style={{ fontFamily: "'Montserrat', sans-serif" }}>Shop by Category</h2>
           </div>
           <button onClick={() => navigate('/categories')} className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1">
             View all <ChevronRight className="h-4 w-4" />
@@ -389,77 +389,58 @@ export default function LandingPageVerdant() {
         </div>
 
         {categoriesLoading ? (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-12">
             <p className="text-slate-500">No categories available yet.</p>
-            <p className="text-sm text-slate-400 mt-2">Admin can add categories from the admin panel.</p>
           </div>
         ) : (
-          /* ── Editorial Bento Grid ── */
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[180px] lg:auto-rows-[220px]">
-            {categories.map((cat, i) => {
+          /* ── Horizontal scroll row — e-commerce style ── */
+          <div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 lg:flex-wrap">
+            {categories.map((cat) => {
               const imgSrc = cat.image
                 ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${cat.image}`
                 : null;
-              // First card spans 2 cols + 2 rows; next 2 span 2 rows; rest are 1×1
-              const spanClass =
-                i === 0 ? 'col-span-2 row-span-2' :
-                i === 1 ? 'col-span-1 row-span-2' :
-                i === 2 ? 'col-span-1 row-span-2' :
-                'col-span-1 row-span-1';
               return (
                 <button
                   key={cat._id}
                   onClick={() => navigate('/products')}
-                  className={`cat-card group relative overflow-hidden rounded-3xl bg-slate-100 cursor-pointer ${spanClass}`}
+                  className="cat-card group flex-shrink-0 flex flex-col items-center gap-2.5 cursor-pointer"
+                  style={{ width: '90px' }}
                 >
-                  {/* Background image */}
-                  {imgSrc ? (
-                    <img
-                      src={imgSrc}
-                      alt={cat.name}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-900 to-emerald-700 flex items-center justify-center">
-                      <Leaf size={i === 0 ? 64 : 40} className="text-white/30" />
-                    </div>
-                  )}
-
-                  {/* Light gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#A2E2A6]/80 via-[#A2E2A6]/20 to-transparent" />
-
-                  {/* Hover shimmer */}
-                  <div className="absolute inset-0 bg-[#0A2318]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  {/* Text overlay — frosted glass */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
-                    <div className="inline-block backdrop-blur-md bg-white/70 border border-white/60 rounded-2xl px-3 py-2 shadow-sm">
-                      <h3
-                        className="font-semibold text-[#0A2318] text-sm lg:text-base leading-tight"
-                        style={{ fontFamily: "'Montserrat', sans-serif" }}
-                      >
-                        {cat.name}
-                      </h3>
-                      <p className="text-[10px] lg:text-xs text-[#0A2318]/80 mt-0.5 font-medium">
-                        {cat.productCount || 0} product{cat.productCount !== 1 ? 's' : ''}
-                      </p>
-                    </div>
+                  {/* Circular image */}
+                  <div className="relative w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-transparent group-hover:border-green-500 transition-all duration-300 shadow-md group-hover:shadow-green-200 group-hover:shadow-lg">
+                    {imgSrc ? (
+                      <img
+                        src={imgSrc}
+                        alt={cat.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
+                        <Leaf size={28} className="text-green-600" />
+                      </div>
+                    )}
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
                   </div>
 
-                  {/* Arrow on hover */}
-                  <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/0 group-hover:bg-[#0A2318]/10 border border-transparent group-hover:border-[#0A2318]/25 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100">
-                    <ArrowRight className="h-4 w-4 text-[#0A2318]" />
-                  </div>
+                  {/* Label */}
+                  <p
+                    className="text-center text-[11px] sm:text-xs font-medium text-slate-700 group-hover:text-green-700 transition-colors leading-tight"
+                    style={{ fontFamily: "'Montserrat', sans-serif", maxWidth: '80px' }}
+                  >
+                    {cat.name}
+                  </p>
                 </button>
               );
             })}
           </div>
         )}
       </section>
+
 
       {/* Products Section */}
       <section id="products" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20" ref={productsRef}>

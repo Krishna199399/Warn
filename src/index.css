@@ -588,3 +588,12 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.60 0.18 152);
 }
+
+/* ── Utility: hide scrollbar while keeping scroll behaviour ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;   /* IE / Edge */
+  scrollbar-width: none;      /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Chrome / Safari */
+}

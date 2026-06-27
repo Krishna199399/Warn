@@ -135,7 +135,7 @@ export default function CreateProductPage() {
       if (form.unitQuantity) fd.append('unitQuantity', form.unitQuantity);
       // actualPrice = MRP (package price), price = sell price
       if (form.actualPrice) fd.append('actualPrice', form.actualPrice);
-      if (form.price)       fd.append('price',       form.price);
+      if (form.price)       fd.append('mrp',         form.price);   // schema requires 'mrp' for sell price
       fd.append('taxRate',     form.taxRate || '18');
       if (form.rp)   fd.append('rp',  form.rp);
       if (form.sv)   fd.append('sv',  form.sv);

@@ -112,8 +112,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // ─── Body + Cookie parsing ────────────────────────────────────────────────────
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // ─── Static files (uploads) ───────────────────────────────────────────────────
